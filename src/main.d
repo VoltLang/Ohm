@@ -25,11 +25,12 @@ void main()
 	scope(exit) oc.close();
 
 	LLVMLinkInInterpreter();
-	//LLVMLinkInMCJIT();
+	LLVMLinkInMCJIT();
 
 	Location loc;
 	loc.filename = "first";
-	oc.addTopLevel("local int x = 3;", loc);
+	// important, changing global to local here seems to trigger a llvm bug
+	oc.addTopLevel("global int x = 3;", loc);
 	loc.filename = "second";
 	oc.addTopLevel("extern(C) int printf(const(char)*, ...);", loc);
 	loc.filename = "third";
@@ -42,15 +43,14 @@ void main()
 	char *error = null;
 	LLVMExecutionEngineRef ee = null;
 
-	assert(LLVMCreateExecutionEngineForModule(&ee, state.mod, &error) == 0);
+	//assert(LLVMCreateExecutionEngineForModule(&ee, state.mod, &error) == 0);
 
-	// TODO figure out why MCJit doesn't properly work
 	// on a LLVMGetFunctionAddress or LLVMRunFunction call MCJit hangs
 	// LLVMMCJITCompilerOptions options;
 	// options.MCJMM = null;
 	// LLVMInitializeMCJITCompilerOptions(&options, options.sizeof);
 	//assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, &options, options.sizeof, &error) == 0);
-	//assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, null) == 0);
+	assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, null) == 0);
 
 	if (error)
 		writefln("Error: %s", to!string(error));
@@ -62,6 +62,8 @@ void main()
 	writefln("Addr: %s", LLVMGetFunctionAddress(ee, "test"));
 
 	writeln("==============  EXEC  ==============");
+	// alternative:
+	// (cast(int function())(cast(void*)LLVMGetFunctionAddress(ee, "test")))();
 	LLVMGenericValueRef val = LLVMRunFunction(ee, func, 0, null);
 	scope (exit)
 		LLVMDisposeGenericValue(val);
