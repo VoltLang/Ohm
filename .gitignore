@@ -1,0 +1,27 @@
+# Build system
+/volt
+/volt.*
+/ohm
+/ohm.*
+.obj
+.pkg
+*.tar.gz
+/bin
+/build
+
+# Temporary files produced by the compiler
+*.ll
+*.bc
+*.o
+*.a
+a.out*
+a.exe*
+
+# Misc files
+b.bat
+/deimos-llvm
+/src/Volta
+
+# IDE files
+*.kdev*
+
