@@ -21,6 +21,15 @@ DC_UPPER	= `echo $(DC) | tr a-z A-Z`
 CC_UPPER	= `echo $(CC) | tr a-z A-Z`
 
 
+ifeq ($(DC),ldc2)
+	ADDITIONAL_FLAGS = -d-debug -unittest -g -gc
+else ifeq ($(DC),gdc)
+	ADDITIONAL_FLAGS = -fdebug -g
+else
+	ADDITIONAL_FLAGS = -debug -unittest -g -gc
+endif
+
+
 all: ohm
 
 .PHONY: clean
@@ -44,8 +53,9 @@ $(CBUILD_PATH)/%$(EXT) : %.c
 
 buildDir: $(OBJDIRS)
 
-run:
-	./ohm
+run: ohm
+	@echo "    RUN    ohm"
+	@./ohm
 
 $(OBJDIRS) :
 	@echo "    MKDIR  $@"
