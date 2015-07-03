@@ -14,7 +14,8 @@ import volt.llvm.interfaces : State;
 
 
 
-class OhmBackend : LlvmBackend {
+class OhmBackend : LlvmBackend
+{
 	this(LanguagePass lp) {
 		super(lp);
 	}

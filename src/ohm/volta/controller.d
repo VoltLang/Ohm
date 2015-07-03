@@ -8,33 +8,37 @@ import volt.ir.util;
 import volt.ir.copy;
 import volt.interfaces : Controller, Frontend, Backend, Settings, LanguagePass, Pass, TargetType;
 import volt.semantic.languagepass : VoltLanguagePass;
+import volt.semantic.extyper : ExTyper;
 import volt.semantic.util;
 import volt.token.location : Location;
+import volt.visitor.visitor : accept;
 import volt.visitor.prettyprinter : PrettyPrinter;
 import volt.visitor.debugprinter : DebugPrinter, DebugMarker;
 import volt.llvm.interfaces : State;
 
-import ohm.volta.parser : OhmParser = Parser;
+import ohm.volta.parser : OhmParser;
 import ohm.volta.backend : OhmBackend;
+import ohm.volta.languagepass : OhmLanguagePass;
+import ohm.volta.extyper : REPLExTyper;
 
 
 
-class OhmController : Controller {
+class OhmController : Controller
+{
 public:
 	Settings settings;
-	Frontend frontend;
-	LanguagePass languagePass;
-	Backend backend;
+	OhmParser frontend;
+	OhmLanguagePass languagePass;
+	OhmBackend backend;
 
 	Pass[] debugVisitors;
 
-private:
+protected:
 	ir.Module mModule;
-	ir.Function mMainFunc;
-	ir.Exp returnedExp;
+	ir.Function mREPLFunc;
 
-public:
-	this(Settings s, Frontend f, LanguagePass lp, Backend b)
+private:
+	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
 	{
 		this.settings = s;
 		this.frontend = f;
@@ -51,25 +55,26 @@ public:
 		mModule.children = new ir.TopLevelBlock();
 		mModule.children.nodes = [];
 
-		this.mMainFunc = new ir.Function();
-		mMainFunc.name = "__ohm_main";
+		this.mREPLFunc = new ir.Function();
+		mREPLFunc.name = "__ohm_main";
 		loc.filename = "__ohm_main";
-		mMainFunc.type = new ir.FunctionType();
-		mMainFunc.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
-		mMainFunc.type.ret.location = loc;
-		mMainFunc.location = loc;
-		mMainFunc.params = [];
-		mMainFunc.type.location = mMainFunc.location;
-		mMainFunc._body = new ir.BlockStatement();
-		mMainFunc.location = loc;
+		mREPLFunc.type = new ir.FunctionType();
+		mREPLFunc.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
+		mREPLFunc.type.ret.location = loc;
+		mREPLFunc.location = loc;
+		mREPLFunc.params = [];
+		mREPLFunc.type.location = mREPLFunc.location;
+		mREPLFunc._body = new ir.BlockStatement();
+		mREPLFunc.location = loc;
 	}
 
+public:
 	this(Settings s)
 	{
 		this.settings = s;
 
 		auto p = new OhmParser();
-		auto lp = new VoltLanguagePass(s, p, this);
+		auto lp = new OhmLanguagePass(s, p, this);
 		auto b = new OhmBackend(lp);
 
 		this(s, p, lp, b);
@@ -90,34 +95,36 @@ public:
 	{
 		auto nodes = frontend.parseStatements(statements, loc);
 
+		auto lastNode = nodes[$-1];
+		auto otherNodes = nodes[0..$-1];
+
 		// remove the last return statement
-		ir.Node old = null;
-		if (mMainFunc._body.statements.length) {
-			old = mMainFunc._body.statements[$-1];
-			mMainFunc._body.statements = mMainFunc._body.statements.remove(mMainFunc._body.statements.length-1);
+		ir.Node oldLastNode = null;
+		if (mREPLFunc._body.statements.length) {
+			oldLastNode = mREPLFunc._body.statements[$-1];
+			--mREPLFunc._body.statements.length; // cut off the last element
 		}
 
 		/*if (old && cast(ir.ReturnStatement) old) {
 			ir.Exp exp = (cast(ir.ReturnStatement) old).exp;
 
 			if (cast(ir.BinOp) exp) {
-				mMainFunc._body.statements ~= copyExp(exp);
+				mREPLFunc._body.statements ~= copyExp(exp);
 			}
 		}*/
 
-		mMainFunc._body.statements ~= nodes[0..$-1];
+		mREPLFunc._body.statements ~= otherNodes;
 
-		ir.ExpStatement exp;
-		if ((exp = cast(ir.ExpStatement)nodes[$-1]) !is null) {
-			returnedExp = exp.exp;
+		ir.Exp exp = null;
+		if (auto expStmt = cast(ir.ExpStatement)lastNode) {
+			exp = expStmt.exp;
 		} else {
-			mMainFunc._body.statements ~= nodes[$-1];
-			returnedExp = null;
+			mREPLFunc._body.statements ~= lastNode;
 		}
 
 		auto ret = new ir.ReturnStatement();
-		ret.exp = returnedExp;
-		mMainFunc._body.statements ~= ret;
+		ret.exp = exp;
+		mREPLFunc._body.statements ~= ret;
 	}
 
 	ir.Module getModule(ir.QualifiedName name)
@@ -138,12 +145,12 @@ public:
 	}
 
 	State compile() {
-		// TODO
-		ir.Module testMod = copy(mModule);
-		ir.Function testFunc = copy(mMainFunc);
-		testMod.children.nodes ~= testFunc;
+		// make copies so wen can reuse the AST later on
+		auto copiedMod = copy(mModule);
+		auto copiedREPLFunc = copy(mREPLFunc);
+		copiedMod.children.nodes ~= copiedREPLFunc;
 
-		ir.Module[] mods = [testMod] /* ~ moreModules */;
+		ir.Module[] mods = [copiedMod] /* ~ moreModules */; // TODO
 
 		bool debugPassesRun = false;
 		void debugPasses(ir.Module[] mods)
@@ -159,23 +166,19 @@ public:
 		}
 		scope(exit) debugPasses(mods);
 
+		// make the ExTyper aware of the REPL-Function
+		// it will fix the return type automatically
+		languagePass.setREPLFunction(copiedREPLFunc);
+
 		// Force phase 1 to be executed on the modules.
 		foreach (mod; mods)
 			languagePass.phase1(mod);
 
-		// adjust the return type of our magic function
-		if (returnedExp) {
-			testFunc.type.ret = copyTypeSmart(testFunc.location, getExpType(languagePass, copyExp(returnedExp), testFunc.myScope));
-		} else {
-			testFunc.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
-			testFunc.type.ret.location = testFunc.location;
-		}
-
 		// All modules need to be run trough phase2.
 		languagePass.phase2(mods);
 
-
-		testFunc.mangledName = testFunc.name;
+		// make sure we don't use a mangled name
+		copiedREPLFunc.mangledName = copiedREPLFunc.name;
 
 		// All modules need to be run trough phase3.
 		languagePass.phase3(mods);
@@ -183,8 +186,6 @@ public:
 		debugPasses(mods);
 
 		// TODO link with other modules, returned by getModule
-		OhmBackend ob = cast(OhmBackend)backend;
-		// mods[0] is our mModule
-		return ob.getCompiledModuleState(mods[0]);
+		return backend.getCompiledModuleState(copiedMod);
 	}
 }

@@ -10,7 +10,7 @@ import volt.token.source : Source;
 import volt.token.stream : TokenType;
 
 
-class Parser : VoltaParser
+class OhmParser : VoltaParser
 {
 public:
 	ir.TopLevelBlock parseToplevel(string source, Location loc, bool inModule = false)
