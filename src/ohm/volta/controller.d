@@ -1,20 +1,26 @@
 module ohm.volta.controller;
 
-import std.algorithm : remove;
+import std.algorithm : remove, endsWith;
+import std.path : dirSeparator;
+import std.file : remove, exists;
+import std.process : wait, spawnShell;
 import std.stdio : write, writeln, writefln, writef;
 
 import ir = volt.ir.ir;
 import volt.ir.util;
 import volt.ir.copy;
+import volt.util.path;
 import volt.interfaces : Controller, Frontend, Backend, Settings, LanguagePass, Pass, TargetType;
 import volt.semantic.languagepass : VoltLanguagePass;
 import volt.semantic.extyper : ExTyper;
 import volt.semantic.util;
 import volt.token.location : Location;
+import volt.parser.toplevel : createImport;
 import volt.visitor.visitor : accept;
 import volt.visitor.prettyprinter : PrettyPrinter;
 import volt.visitor.debugprinter : DebugPrinter, DebugMarker;
 import volt.llvm.interfaces : State;
+import volt.errors;
 
 import ohm.volta.parser : OhmParser;
 import ohm.volta.backend : OhmBackend;
@@ -37,13 +43,33 @@ protected:
 	ir.Module mModule;
 	ir.Function mREPLFunc;
 
-private:
+	string[] mIncludes;
+	ir.Module[string] mModulesByName;
+	ir.Module[string] mModulesByFile;
+
+	string[] mLibraryFiles;
+	string[] mLibraryPaths;
+
+	string[] mFrameworkNames;
+	string[] mFrameworkPaths;
+
+protected:
 	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
 	{
 		this.settings = s;
 		this.frontend = f;
 		this.languagePass = lp;
 		this.backend = b;
+
+		this.mIncludes = settings.includePaths;
+
+		this.mLibraryPaths = settings.libraryPaths;
+		this.mLibraryFiles = settings.libraryFiles;
+
+		// Add the stdlib includes and files.
+		if (!settings.noStdLib) {
+			this.mIncludes = settings.stdIncludePaths ~ mIncludes;
+		}
 
 		this.mModule = new ir.Module();
 		auto qname = new ir.QualifiedName();
@@ -53,7 +79,10 @@ private:
 		loc.filename = "main";
 		mModule.location = loc;
 		mModule.children = new ir.TopLevelBlock();
-		mModule.children.nodes = [];
+		mModule.children.nodes = [
+			createImport(mModule.location, "defaultsymbols", false),
+			createImport(mModule.location, "object", true)
+		];
 
 		this.mREPLFunc = new ir.Function();
 		mREPLFunc.name = "__ohm_main";
@@ -129,8 +158,43 @@ public:
 
 	ir.Module getModule(ir.QualifiedName name)
 	{
-		// TODO
-		return new ir.Module();
+		auto p = name.toString() in mModulesByName;
+		ir.Module m;
+
+		if (p !is null)
+			m = *p;
+
+		string[] validPaths;
+		foreach (path; mIncludes) {
+			if (m !is null)
+				break;
+
+			auto paths = genPossibleFilenames(path, name.strings);
+
+			foreach (possiblePath; paths) {
+				if (exists(possiblePath)) {
+					validPaths ~= possiblePath;
+				}
+			}
+		}
+
+		if (m is null) {
+			if (validPaths.length == 0) {
+				return null;
+			}
+			if (validPaths.length > 1) {
+				throw makeMultipleValidModules(name, validPaths);
+			}
+			m = loadAndParse(validPaths[0]);
+		}
+
+		// Need to make sure that this module can
+		// be used by other modules.
+		if (m !is null) {
+			languagePass.phase1(m);
+		}
+
+		return m;
 	}
 
 	void close() {
@@ -150,7 +214,7 @@ public:
 		auto copiedREPLFunc = copy(mREPLFunc);
 		copiedMod.children.nodes ~= copiedREPLFunc;
 
-		ir.Module[] mods = [copiedMod] /* ~ moreModules */; // TODO
+		ir.Module[] mods = [copiedMod];
 
 		bool debugPassesRun = false;
 		void debugPasses(ir.Module[] mods)
@@ -166,13 +230,21 @@ public:
 		}
 		scope(exit) debugPasses(mods);
 
-		// make the ExTyper aware of the REPL-Function
-		// it will fix the return type automatically
-		languagePass.setREPLFunction(copiedREPLFunc);
+		// After we have loaded all of the modules
+		// setup the pointers, this allows for suppling
+		// a user defined object module.
+		languagePass.setupOneTruePointers();
 
 		// Force phase 1 to be executed on the modules.
 		foreach (mod; mods)
 			languagePass.phase1(mod);
+
+		// add other modules used by the main module
+		mods ~= mModulesByName.values;
+
+		// make the ExTyper aware of the REPL-Function
+		// it will fix the return type automatically
+		languagePass.setREPLFunction(copiedREPLFunc);
 
 		// All modules need to be run trough phase2.
 		languagePass.phase2(mods);
@@ -185,7 +257,50 @@ public:
 
 		debugPasses(mods);
 
-		// TODO link with other modules, returned by getModule
 		return backend.getCompiledModuleState(copiedMod);
+	}
+
+	void addLibrary(string lib)
+	{
+		mLibraryFiles ~= lib;
+	}
+
+	void addLibraryPath(string path)
+	{
+		mLibraryPaths ~= path;
+	}
+
+	void addLibrarys(string[] libs)
+	{
+		foreach(lib; libs)
+			addLibrary(lib);
+	}
+
+	void addLibraryPaths(string[] paths)
+	{
+		foreach(path; paths)
+			addLibraryPath(path);
+	}
+
+protected:
+	ir.Module loadAndParse(string file)
+	{
+		Location loc;
+		loc.filename = file;
+
+		if (file in mModulesByFile) {
+			return mModulesByFile[file];
+		}
+
+		auto src = cast(string) read(loc.filename);
+		auto m = frontend.parseNewFile(src, loc);
+		if (m.name.toString() in mModulesByName) {
+			throw makeAlreadyLoaded(m, file);
+		}
+
+		mModulesByFile[file] = m;
+		mModulesByName[m.name.toString()] = m;
+
+		return m;
 	}
 }

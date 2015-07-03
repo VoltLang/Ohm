@@ -12,7 +12,6 @@ import lib.llvm.analysis;
 import lib.llvm.core;
 
 import ohm.volta.controller : OhmController;
-import ohm.volta.parser : Parser;
 import ohm.volta.backend : OhmBackend;
 
 
@@ -51,7 +50,6 @@ public:
 
 	void run()
 	{
-
 		string line;
 		while (!input.eof()) {
 			printInputPrompt();

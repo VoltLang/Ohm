@@ -43,22 +43,22 @@ void* LLVMGenericValueToPointer (LLVMGenericValueRef GenVal);
 double LLVMGenericValueToFloat (LLVMTypeRef TyRef, LLVMGenericValueRef GenVal);
 void LLVMDisposeGenericValue (LLVMGenericValueRef GenVal);
 
-LLVMBool LLVMCreateExecutionEngineForModule(LLVMExecutionEngineRef *OutEE, LLVMModuleRef M, const(char)** OutError);
+LLVMBool LLVMCreateExecutionEngineForModule(LLVMExecutionEngineRef *OutEE, LLVMModuleRef M, const(char*)* OutError);
 void LLVMInitializeMCJITCompilerOptions(LLVMMCJITCompilerOptions *Options, size_t SizeOfOptions);
-LLVMBool LLVMCreateMCJITCompilerForModule(LLVMExecutionEngineRef *OutJIT, LLVMModuleRef M, LLVMMCJITCompilerOptions *Options, size_t SizeOfOptions, const(char)** OutError);
+LLVMBool LLVMCreateMCJITCompilerForModule(LLVMExecutionEngineRef *OutJIT, LLVMModuleRef M, LLVMMCJITCompilerOptions *Options, size_t SizeOfOptions, const(char*)* OutError);
 
 void LLVMDisposeExecutionEngine(LLVMExecutionEngineRef EE);
 
 void LLVMRunStaticConstructors(LLVMExecutionEngineRef EE);
 void LLVMRunStaticDestructors(LLVMExecutionEngineRef EE);
 
-int LLVMRunFunctionAsMain(LLVMExecutionEngineRef EE, LLVMValueRef F, uint ArgC, const(char)** ArgV, const(char)** EnvP);
+int LLVMRunFunctionAsMain(LLVMExecutionEngineRef EE, LLVMValueRef F, uint ArgC, const(char*)* ArgV, const(char*)* EnvP);
 LLVMGenericValueRef LLVMRunFunction(LLVMExecutionEngineRef EE, LLVMValueRef F, uint NumArgs, LLVMGenericValueRef *Args);
 
 void LLVMFreeMachineCodeForFunction(LLVMExecutionEngineRef EE, LLVMValueRef F);
 
 void LLVMAddModule(LLVMExecutionEngineRef EE, LLVMModuleRef M);
-LLVMBool LLVMRemoveModule(LLVMExecutionEngineRef EE, LLVMModuleRef M, LLVMModuleRef *OutMod, const(char)** OutError);
+LLVMBool LLVMRemoveModule(LLVMExecutionEngineRef EE, LLVMModuleRef M, LLVMModuleRef *OutMod, const(char*)* OutError);
 
 LLVMBool LLVMFindFunction(LLVMExecutionEngineRef EE, const(char)* Name, LLVMValueRef *OutFn);
 void *LLVMRecompileAndRelinkFunction(LLVMExecutionEngineRef EE, LLVMValueRef Fn);
