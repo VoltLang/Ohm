@@ -12,7 +12,7 @@ import lib.llvm.executionengine;
 import lib.llvm.analysis;
 import lib.llvm.core;
 import lib.llvm.support;
-import ln = lib.linenoise.linenoise;
+import lib.editline.editline;
 
 import ohm.volta.controller : OhmController;
 import ohm.volta.backend : OhmBackend;
@@ -31,6 +31,9 @@ public:
 
 	Location location;
 
+	// TODO move into settings
+	string history = ".ohm.history";
+
 public:
 	this(Settings settings)
 	{
@@ -48,14 +51,14 @@ public:
 			LLVMLoadLibraryPermanently(toStringz(lib));
 		}
 
-		ln.loadHistory(".ohm.history");
+		read_history(this.history);
 	}
 
 	void run()
 	{
-		string line;
-
-		while (!getLine(line)) {
+		while (true) {
+			string line = getLine();
+			if (line.length == 0) break;
 			if (line.strip().length == 0) continue;
 
 			saveLine(line);
@@ -100,10 +103,10 @@ protected:
 		return to!string(LLVMGenericValueToInt(val, false));
 	}
 
-	bool getLine(out string line)
+	string getLine()
 	{
 		writeln();
-		return ln.line("In [%d]: ".format(location.line), line);
+		return readline("In [%d]: ".format(location.line));
 	}
 
 	void writeLine(string line)
@@ -113,7 +116,7 @@ protected:
 
 	void saveLine(string line)
 	{
-		ln.addHistory(line);
-		ln.saveHistory(".ohm.history");
+		add_history(line);
+		write_history(this.history);
 	}
 }
