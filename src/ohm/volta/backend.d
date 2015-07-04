@@ -8,7 +8,7 @@ import lib.llvm.core;
 import lib.llvm.executionengine;
 import volt.errors : panic;
 import volt.interfaces : LanguagePass;
-import volt.llvm.backend : LlvmBackend;
+import volt.llvm.backend : loadModule, LlvmBackend;
 import volt.llvm.state : VoltState;
 import volt.llvm.interfaces : State;
 

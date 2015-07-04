@@ -121,9 +121,6 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 		case "--internal-dbg":
 			settings.internalDebug = true;
 			continue;
-		case "--no-stdlib":
-			settings.noStdLib = true;
-			continue;
 		case "--stdlib-file":
 			argHandler = &stdFile;
 			continue;
@@ -218,9 +215,7 @@ bool printUsage()
 	writeln();
 	writefln("\t--internal-dbg   Enables internal debug printing.");
 	writeln();
-	writefln("\t--no-stdlib      Don't include any stdlib (from config or arguments)");
 	writefln("\t--stdlib-I       Apply this include before any other -I");
-	writefln("\t                 (ignored if --no-stdlib was given)");
 	writefln("\t--stdlib-file    Apply this file first but only when linking");
 	writefln("\t                 (ignored if --no-stdlib was given)");
 	return false;

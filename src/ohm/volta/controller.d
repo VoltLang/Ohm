@@ -47,12 +47,6 @@ protected:
 	ir.Module[string] mModulesByName;
 	ir.Module[string] mModulesByFile;
 
-	string[] mLibraryFiles;
-	string[] mLibraryPaths;
-
-	string[] mFrameworkNames;
-	string[] mFrameworkPaths;
-
 protected:
 	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
 	{
@@ -61,15 +55,8 @@ protected:
 		this.languagePass = lp;
 		this.backend = b;
 
-		this.mIncludes = settings.includePaths;
-
-		this.mLibraryPaths = settings.libraryPaths;
-		this.mLibraryFiles = settings.libraryFiles;
-
-		// Add the stdlib includes and files.
-		if (!settings.noStdLib) {
-			this.mIncludes = settings.stdIncludePaths ~ mIncludes;
-		}
+		this.mIncludes = settings.stdIncludePaths;
+		mIncludes ~= settings.includePaths;
 
 		this.mModule = new ir.Module();
 		auto qname = new ir.QualifiedName();
@@ -95,6 +82,20 @@ protected:
 		mREPLFunc.type.location = mREPLFunc.location;
 		mREPLFunc._body = new ir.BlockStatement();
 		mREPLFunc.location = loc;
+
+		auto fakeMain = new ir.Function();
+		fakeMain.name = "main";
+		loc.filename = "fakeMain";
+		fakeMain.type = new ir.FunctionType();
+		fakeMain.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
+		fakeMain.type.ret.location = loc;
+		fakeMain.location = loc;
+		fakeMain.params = [];
+		fakeMain.type.location = fakeMain.location;
+		fakeMain._body = new ir.BlockStatement();
+		fakeMain.location = loc;
+
+		mModule.children.nodes ~= fakeMain;
 	}
 
 public:
@@ -258,28 +259,6 @@ public:
 		debugPasses(mods);
 
 		return backend.getCompiledModuleState(copiedMod);
-	}
-
-	void addLibrary(string lib)
-	{
-		mLibraryFiles ~= lib;
-	}
-
-	void addLibraryPath(string path)
-	{
-		mLibraryPaths ~= path;
-	}
-
-	void addLibrarys(string[] libs)
-	{
-		foreach(lib; libs)
-			addLibrary(lib);
-	}
-
-	void addLibraryPaths(string[] paths)
-	{
-		foreach(path; paths)
-			addLibraryPath(path);
 	}
 
 protected:

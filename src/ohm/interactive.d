@@ -6,10 +6,12 @@ import std.string;
 import volt.interfaces : Settings;
 import volt.token.location : Location;
 import volt.llvm.interfaces : State;
+import volt.llvm.backend : loadModule;
 
 import lib.llvm.executionengine;
 import lib.llvm.analysis;
 import lib.llvm.core;
+import lib.llvm.support;
 
 import ohm.volta.controller : OhmController;
 import ohm.volta.backend : OhmBackend;
@@ -46,6 +48,10 @@ public:
 
 		LLVMLinkInInterpreter();
 		LLVMLinkInMCJIT();
+
+		foreach (lib; settings.libraryFiles) {
+			LLVMLoadLibraryPermanently(toStringz(lib));
+		}
 	}
 
 	void run()
@@ -82,6 +88,12 @@ protected:
 		string error;
 		LLVMExecutionEngineRef ee = null;
 		assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error) == 0, error);
+
+		foreach (path; settings.stdFiles) {
+			auto mod = loadModule(state.context, path);
+			LLVMAddModule(ee, mod);
+		}
+
 		LLVMValueRef func;
 		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);
 		LLVMGenericValueRef val = LLVMRunFunction(ee, func, 0, null);
