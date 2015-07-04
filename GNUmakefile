@@ -6,7 +6,7 @@ LLVM_LDFLAGS = $(shell $(LLVM_CONFIG) --libs core analysis bitwriter bitreader l
 DCFLAGS_IMPORT	= -Isrc/ -Isrc/Volta/src/
 DCFLAGS_LINK	= $(patsubst -%, $(LINKERFLAG)-%, $(LLVM_LDFLAGS)) $(LINKERFLAG)-ldl $(LINKERFLAG)-lstdc++ $(LINKERFLAG)-lffi
 
-OBJDIRS		= $(DBUILD_PATH)/ohm $(DBUILD_PATH)/volt $(DBUILD_PATH)/lib
+OBJDIRS		= $(DBUILD_PATH)/ohm $(DBUILD_PATH)/volt $(DBUILD_PATH)/src $(CBUILD_PATH)/src/c/linenoise
 
 DSOURCES	= $(call getSource,src/ohm,d) src/main.d
 DOBJECTS	= $(patsubst %.d,$(DBUILD_PATH)/%$(EXT), $(DSOURCES))
@@ -14,8 +14,8 @@ DOBJECTS	= $(patsubst %.d,$(DBUILD_PATH)/%$(EXT), $(DSOURCES))
 DSOURCES_OTHER 	= $(call getSource,src/Volta/src/volt,d) $(call getSource,src/Volta/src/lib,d) $(call getSource,src/lib,d)
 DOBJECTS_OTHER 	= $(patsubst %.d,$(DBUILD_PATH_OTHER)/%$(EXT), $(DSOURCES_OTHER))
 
-CSOURCES	=
-COBJECTS	=
+CSOURCES	= $(call getSource,src/c/linenoise,c)
+COBJECTS	= $(patsubst %.c,$(CBUILD_PATH)/%$(EXT), $(CSOURCES))
 
 DC_UPPER	= `echo $(DC) | tr a-z A-Z`
 CC_UPPER	= `echo $(CC) | tr a-z A-Z`

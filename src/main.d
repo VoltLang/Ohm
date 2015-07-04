@@ -37,7 +37,7 @@ int main(string[] args)
 		return 0;
 	}
 
-	Interactive interactive = new InteractiveConsole(settings, stdin, stdout);
+	Interactive interactive = new InteractiveConsole(settings);
 	interactive.run();
 
 	return 0;

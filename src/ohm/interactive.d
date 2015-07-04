@@ -1,6 +1,6 @@
 module ohm.interactive;
 
-import std.stdio : File, stdin, stdout;
+import std.stdio : writeln, writefln;
 import std.string;
 
 import volt.interfaces : Settings;
@@ -12,6 +12,7 @@ import lib.llvm.executionengine;
 import lib.llvm.analysis;
 import lib.llvm.core;
 import lib.llvm.support;
+import ln = lib.linenoise.linenoise;
 
 import ohm.volta.controller : OhmController;
 import ohm.volta.backend : OhmBackend;
@@ -30,16 +31,10 @@ public:
 
 	Location location;
 
-protected:
-	File input;
-	File output;
-
 public:
-	this(Settings settings, File input, File output)
+	this(Settings settings)
 	{
 		this.settings = settings;
-		this.input = input;
-		this.output = output;
 
 		this.location.filename = "ohm";
 		this.location.line = 1;
@@ -52,19 +47,22 @@ public:
 		foreach (lib; settings.libraryFiles) {
 			LLVMLoadLibraryPermanently(toStringz(lib));
 		}
+
+		ln.loadHistory(".ohm.history");
 	}
 
 	void run()
 	{
 		string line;
-		while (!input.eof()) {
-			printInputPrompt();
-			string result = processInput();
 
+		while (!getLine(line)) {
+			if (line.strip().length == 0) continue;
+
+			saveLine(line);
+
+			string result = processInput(line);
 			if (result && result.length > 0) {
-				printOutputPrompt();
-				output.write(result);
-				output.write("\n");
+				writeLine(result);
 			}
 
 			++location.line;
@@ -72,13 +70,8 @@ public:
 	}
 
 protected:
-	string processInput()
+	string processInput(string line)
 	{
-		string line = input.readln();
-		if (line is null) {
-			return line;
-		}
-
 		if (line.strip().length > 0) {
 			controller.addStatement(line, location);
 		}
@@ -107,13 +100,20 @@ protected:
 		return to!string(LLVMGenericValueToInt(val, false));
 	}
 
-	void printInputPrompt()
+	bool getLine(out string line)
 	{
-		output.writef("\nIn [%d]: ", location.line);
+		writeln();
+		return ln.line("In [%d]: ".format(location.line), line);
 	}
 
-	void printOutputPrompt()
+	void writeLine(string line)
 	{
-		output.writef("Out [%d]: ", location.line);
+		writefln("Out [%d]: %s", location.line, line);
+	}
+
+	void saveLine(string line)
+	{
+		ln.addHistory(line);
+		ln.saveHistory(".ohm.history");
 	}
 }

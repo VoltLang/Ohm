@@ -269,9 +269,6 @@ IMPORT_PATH         = .$(PATH_SEP)import
 DOC_PATH            = .$(PATH_SEP)doc
 DDOC_PATH           = .$(PATH_SEP)ddoc
 DBUILD_PATH         = .$(PATH_SEP)build
-DBUILD_PATH_GL3N    = .$(PATH_SEP)build
-DBUILD_PATH_GLAMOUR = .$(PATH_SEP)build
-DBUILD_PATH_DERELICT = .$(PATH_SEP)build
 DBUILD_PATH_OTHER   = .$(PATH_SEP)build
 CBUILD_PATH         = .$(PATH_SEP)build
 

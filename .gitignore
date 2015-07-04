@@ -18,6 +18,7 @@ a.out*
 a.exe*
 
 # Misc files
+*.history
 b.bat
 /deimos-llvm
 /src/Volta
