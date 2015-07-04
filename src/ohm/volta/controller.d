@@ -26,6 +26,7 @@ import ohm.volta.parser : OhmParser;
 import ohm.volta.backend : OhmBackend;
 import ohm.volta.languagepass : OhmLanguagePass;
 import ohm.volta.extyper : REPLExTyper;
+import ohm.volta.util : createSimpleModule, createSimpleFunction, addImport;
 
 
 
@@ -58,44 +59,17 @@ protected:
 		this.mIncludes = settings.stdIncludePaths;
 		mIncludes ~= settings.includePaths;
 
-		this.mModule = new ir.Module();
-		auto qname = new ir.QualifiedName();
-		qname.identifiers = [new ir.Identifier("ohm")];
-		mModule.name = qname;
-		Location loc;
-		loc.filename = "main";
-		mModule.location = loc;
-		mModule.children = new ir.TopLevelBlock();
-		mModule.children.nodes = [
-			createImport(mModule.location, "defaultsymbols", false),
-			createImport(mModule.location, "object", true)
-		];
+		this.mModule = createSimpleModule(["ohm"]);
+		addImport(mModule, ["defaultsymbols"], false);
+		addImport(mModule, ["object"], true);
 
-		this.mREPLFunc = new ir.Function();
-		mREPLFunc.name = "__ohm_main";
-		loc.filename = "__ohm_main";
-		mREPLFunc.type = new ir.FunctionType();
-		mREPLFunc.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
-		mREPLFunc.type.ret.location = loc;
-		mREPLFunc.location = loc;
-		mREPLFunc.params = [];
-		mREPLFunc.type.location = mREPLFunc.location;
-		mREPLFunc._body = new ir.BlockStatement();
-		mREPLFunc.location = loc;
+		// main function which works as a scope and
+		// will actually be called by the JIT
+		this.mREPLFunc = createSimpleFunction("__ohm_main");
 
-		auto fakeMain = new ir.Function();
-		fakeMain.name = "main";
-		loc.filename = "fakeMain";
-		fakeMain.type = new ir.FunctionType();
-		fakeMain.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
-		fakeMain.type.ret.location = loc;
-		fakeMain.location = loc;
-		fakeMain.params = [];
-		fakeMain.type.location = fakeMain.location;
-		fakeMain._body = new ir.BlockStatement();
-		fakeMain.location = loc;
-
-		mModule.children.nodes ~= fakeMain;
+		// the runtime expects a main function, without this
+		// function we would get linker errors (from the JIT).
+		mModule.children.nodes ~= createSimpleFunction("main");
 	}
 
 public:
