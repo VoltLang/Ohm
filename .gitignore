@@ -20,6 +20,7 @@ a.exe*
 # Misc files
 *.history
 b.bat
+_ohm.conf
 /deimos-llvm
 /src/Volta
 

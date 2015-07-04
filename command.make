@@ -8,18 +8,21 @@ ifdef SystemRoot
     Filter          =%/linux/%.d %/darwin/%.d %/freebsd/%.d %/solaris/%.d
     getSource       =$(shell dir $1 /s /b)
     EXT             =.obj
+    EXE             =.exe
 else
     SHELL           = sh
     PATH_SEP        =/
     getSource       =$(shell find $1 -name "*.$2")
     EXT             =.o
+    EXE             =
     ifneq (,$(findstring /mingw/,$(PATH)))
         OS              ="MinGW"
         STATIC_LIB_EXT  =.lib
         DYNAMIC_LIB_EXT =.dll
         message         =@(echo \033[31m $1 \033[0;0m1)
         Filter          =%/win32/%.d %/darwin/%.d %/freebsd/%.d %/solaris/%.d
-        EXT                       =.obj
+        EXT             =.obj
+        EXE             =.exe
     else ifeq ($(shell uname), Linux)
         OS              ="Linux"
         STATIC_LIB_EXT  =.a
@@ -99,7 +102,7 @@ endif
 
 # Define flag for gdc other
 ifeq ($(DC),gdc)
-    DCFLAGS    =
+    DCFLAGS   +=
     LINKERFLAG= -Xlinker
     OUTPUT    = -o
     HF        = -fintfc-file=
@@ -107,7 +110,7 @@ ifeq ($(DC),gdc)
     NO_OBJ    = -fsyntax-only
     DDOC_MACRO= -fdoc-inc=
 else
-    DCFLAGS    =
+    DCFLAGS   +=
     LINKERFLAG= -L
     OUTPUT    = -of
     HF        = -Hf
@@ -163,7 +166,7 @@ endif
 
 # Add -ldl flag for linux
 ifeq ($(OS),"Linux")
-    LDCFLAGS += $(LINKERFLAG)-ldl
+    LDDFLAGS += $(LINKERFLAG)-ldl
 endif
 
 # If model are not given take the same as current system
@@ -189,11 +192,11 @@ endif
 ifeq ($(MODEL), 64)
     CFLAGS   += -m64
     DCFLAGS  += -m64
-    LDCFLAGS += -m64
+    LDDFLAGS += -m64
 else
     CFLAGS   += -m32
     DCFLAGS  += -m32
-    LDCFLAGS += -m32
+    LDDFLAGS += -m32
 endif
 
 ifndef DESTDIR
@@ -268,9 +271,9 @@ DLIB_PATH           = .$(PATH_SEP)lib
 IMPORT_PATH         = .$(PATH_SEP)import
 DOC_PATH            = .$(PATH_SEP)doc
 DDOC_PATH           = .$(PATH_SEP)ddoc
-DBUILD_PATH         = .$(PATH_SEP)build
-DBUILD_PATH_OTHER   = .$(PATH_SEP)build
-CBUILD_PATH         = .$(PATH_SEP)build
+BUILD_PATH          = .$(PATH_SEP)build
+DBUILD_PATH         = $(BUILD_PATH)$(PATH_SEP)d
+CBUILD_PATH         = $(BUILD_PATH)$(PATH_SEP)c
 
 LIBNAME             = lib$(PROJECT_NAME)-$(COMPILER)$(STATIC_LIB_EXT)
 SONAME              = lib$(PROJECT_NAME)-$(COMPILER)$(DYNAMIC_LIB_EXT)
@@ -286,6 +289,7 @@ export AR
 export ARCH
 export ARFLAGS
 export BIN_DIR
+export BUILD_PATH
 export DBUILD_PATH
 export CBUILD_PATH
 export CC
@@ -301,13 +305,14 @@ export DLIB_PATH
 export DOC_PATH
 export DDOC_PATH
 export DYNAMIC_LIB_EXT
+export EXE
 export EXT
 export FixPath
 export HF
 export INCLUDE_DIR
 export IMPLIB
 export IMPORT_PATH
-export LDCFLAGS
+export LDDFLAGS
 export FPIC
 export LIBNAME
 export LIB_DIR
