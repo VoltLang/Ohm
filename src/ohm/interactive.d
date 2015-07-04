@@ -90,9 +90,14 @@ protected:
 		assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error) == 0, error);
 
 		foreach (path; settings.stdFiles) {
-			auto mod = loadModule(state.context, path);
+			auto mod = loadModule(LLVMContextCreate(), path);
 			LLVMAddModule(ee, mod);
 		}
+
+		// workaround which calls ee->finalizeObjects, which makes
+		// LLVMRunStaticConstructors not segfault
+		LLVMDisposeGenericValue(LLVMRunFunction(ee, "vmain", []));
+		LLVMRunStaticConstructors(ee);
 
 		LLVMValueRef func;
 		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);

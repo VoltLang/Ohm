@@ -1,5 +1,6 @@
 module lib.llvm.executionengine;
 
+private import std.string : toStringz;
 private import std.conv : to;
 private import lib.llvm.core;
 public import lib.llvm.c.ExecutionEngine;
@@ -8,6 +9,7 @@ public import lib.llvm.c.ExecutionEngine;
 alias LLVMCreateExecutionEngineForModule = lib.llvm.c.ExecutionEngine.LLVMCreateExecutionEngineForModule;
 alias LLVMCreateMCJITCompilerForModule = lib.llvm.c.ExecutionEngine.LLVMCreateMCJITCompilerForModule;
 alias LLVMRemoveModule = lib.llvm.c.ExecutionEngine.LLVMRemoveModule;
+alias LLVMRunFunction = lib.llvm.c.ExecutionEngine.LLVMRunFunction;
 
 
 LLVMBool LLVMCreateExecutionEngineForModule(LLVMExecutionEngineRef *outEE, LLVMModuleRef mod, out string error)
@@ -45,4 +47,15 @@ LLVMBool LLVMRemoveModule(LLVMExecutionEngineRef ee, LLVMModuleRef mod, LLVMModu
 	error = handleAndDisposeMessage(&str);
 
 	return ret;
+}
+
+LLVMGenericValueRef LLVMRunFunction(LLVMExecutionEngineRef ee, string name, LLVMGenericValueRef[] args)
+{
+	LLVMValueRef fn = null;
+	auto retFF = LLVMFindFunction(ee, toStringz(name), &fn);
+	if (fn == null || retFF != 0) {
+		return null;
+	}
+
+	return LLVMRunFunction(ee, fn, cast(uint)args.length, args.ptr);
 }
