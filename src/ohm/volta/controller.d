@@ -10,7 +10,7 @@ import ir = volt.ir.ir;
 import volt.ir.util;
 import volt.ir.copy;
 import volt.util.path;
-import volt.interfaces : Controller, Frontend, Backend, Settings, LanguagePass, Pass, TargetType;
+import volt.interfaces : Controller, Frontend, Backend, LanguagePass, Pass, TargetType;
 import volt.semantic.languagepass : VoltLanguagePass;
 import volt.semantic.extyper : ExTyper;
 import volt.semantic.util;
@@ -22,6 +22,7 @@ import volt.visitor.debugprinter : DebugPrinter, DebugMarker;
 import volt.llvm.interfaces : State;
 import volt.errors;
 
+import ohm.settings : Settings;
 import ohm.volta.parser : OhmParser;
 import ohm.volta.backend : OhmBackend;
 import ohm.volta.languagepass : OhmLanguagePass;

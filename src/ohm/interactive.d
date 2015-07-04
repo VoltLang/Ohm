@@ -3,7 +3,6 @@ module ohm.interactive;
 import std.stdio : writeln, writefln;
 import std.string;
 
-import volt.interfaces : Settings;
 import volt.token.location : Location;
 import volt.llvm.interfaces : State;
 import volt.llvm.backend : loadModule;
@@ -16,6 +15,7 @@ import lib.editline.editline;
 
 import ohm.volta.controller : OhmController;
 import ohm.volta.backend : OhmBackend;
+import ohm.settings : Settings;
 
 
 interface Interactive {
@@ -30,9 +30,6 @@ public:
 	OhmController controller;
 
 	Location location;
-
-	// TODO move into settings
-	string history = ".ohm.history";
 
 public:
 	this(Settings settings)
@@ -51,7 +48,7 @@ public:
 			LLVMLoadLibraryPermanently(toStringz(lib));
 		}
 
-		read_history(this.history);
+		read_history(settings.historyFile);
 	}
 
 	void run()
@@ -117,6 +114,6 @@ protected:
 	void saveLine(string line)
 	{
 		add_history(line);
-		write_history(this.history);
+		write_history(settings.historyFile);
 	}
 }

@@ -2,17 +2,19 @@ import std.stdio;
 
 import std.stdio : File, writeln, writefln;
 import std.string : chomp, toLower;
+import std.path : absolutePath;
 version (Windows) {
 	import std.file : SpanMode, dirEntries;
 	import std.path : baseName, dirName;
 }
 
+import volt.interfaces : Platform, Arch;
 import volt.license;
-import volt.interfaces;
 import volt.controller;
 import volt.util.path;
 
 import ohm.interactive : Interactive, InteractiveConsole;
+import ohm.settings : Settings, expandTilde;
 
 
 int main(string[] args)
@@ -36,6 +38,8 @@ int main(string[] args)
 		writefln("%s: unexpected arguments: %s", cmd, files);
 		return 0;
 	}
+
+	settings.historyFile = absolutePath(expandTilde(settings.historyFile));
 
 	Interactive interactive = new InteractiveConsole(settings);
 	interactive.run();
@@ -72,6 +76,10 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 
 	void stdIncludePath(string path) {
 		settings.stdIncludePaths ~= path;
+	}
+
+	void historyFile(string file) {
+		settings.historyFile = file;
 	}
 
 	foreach(arg; args)  {
@@ -129,6 +137,9 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 			continue;
 		case "--simple-trace":
 			settings.simpleTrace = true;
+			continue;
+		case "--history":
+			argHandler = &historyFile;
 			continue;
 		default:
 		}
