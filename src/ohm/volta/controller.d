@@ -25,8 +25,6 @@ import volt.errors;
 import ohm.settings : Settings;
 import ohm.volta.parser : OhmParser;
 import ohm.volta.backend : OhmBackend;
-import ohm.volta.languagepass : OhmLanguagePass;
-import ohm.volta.extyper : REPLExTyper;
 import ohm.volta.util : createSimpleModule, createSimpleFunction, addImport;
 
 
@@ -36,7 +34,7 @@ class OhmController : Controller
 public:
 	Settings settings;
 	OhmParser frontend;
-	OhmLanguagePass languagePass;
+	VoltLanguagePass languagePass;
 	OhmBackend backend;
 
 	Pass[] debugVisitors;
@@ -50,7 +48,7 @@ protected:
 	ir.Module[string] mModulesByFile;
 
 protected:
-	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
+	this(Settings s, OhmParser f, VoltLanguagePass lp, OhmBackend b)
 	{
 		this.settings = s;
 		this.frontend = f;
@@ -67,6 +65,8 @@ protected:
 		// main function which works as a scope and
 		// will actually be called by the JIT
 		this.mREPLFunc = createSimpleFunction("__ohm_main");
+		// the extyper will automatically set the correct return type
+		mREPLFunc.isAutoReturn = true;
 
 		// the runtime expects a main function, without this
 		// function we would get linker errors (from the JIT).
@@ -79,7 +79,7 @@ public:
 		this.settings = s;
 
 		auto p = new OhmParser();
-		auto lp = new OhmLanguagePass(s, p, this);
+		auto lp = new VoltLanguagePass(s, p, this);
 		auto b = new OhmBackend(lp);
 
 		this(s, p, lp, b);
@@ -217,10 +217,6 @@ public:
 
 		// add other modules used by the main module
 		mods ~= mModulesByName.values;
-
-		// make the ExTyper aware of the REPL-Function
-		// it will fix the return type automatically
-		languagePass.setREPLFunction(copiedREPLFunc);
 
 		// All modules need to be run trough phase2.
 		languagePass.phase2(mods);
