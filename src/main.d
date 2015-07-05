@@ -141,6 +141,9 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 		case "--history":
 			argHandler = &historyFile;
 			continue;
+		case "--stacktrace":
+			settings.showStackTraces = true;
+			continue;
 		default:
 		}
 

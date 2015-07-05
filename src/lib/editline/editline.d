@@ -33,7 +33,11 @@ string readline(const(char)[] prompt)
 {
 	auto s = lib.editline.c.editline.readline(toStringz(prompt));
 	scope(exit) free(s);
-	return to!string(s);
+	if (s is null) {
+		return null;
+	}
+	string r = to!string(s);
+	return r is null ? "" : r;
 }
 
 

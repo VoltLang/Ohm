@@ -47,7 +47,7 @@ all: $(TARGET)
 init: $(VOLTA)
 
 run: $(TARGET) $(VOLTA_BIN)
-	@.$(PATH_SEP)$(TARGET) --stdlib-file src/Volta/rt/libvrt-host.bc --stdlib-I src/Volta/rt/src
+	@.$(PATH_SEP)$(TARGET) --stdlib-file src/Volta/rt/libvrt-host.bc --stdlib-I src/Volta/rt/src $(ARGUMENTS)
 
 clean:
 	@echo "  RM     $(BUILD_PATH)"

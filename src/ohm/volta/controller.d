@@ -20,7 +20,13 @@ import volt.visitor.visitor : accept;
 import volt.visitor.prettyprinter : PrettyPrinter;
 import volt.visitor.debugprinter : DebugPrinter, DebugMarker;
 import volt.llvm.interfaces : State;
+import volt.llvm.backend : loadModule;
 import volt.errors;
+
+import lib.llvm.executionengine;
+import lib.llvm.analysis;
+import lib.llvm.core;
+import lib.llvm.support;
 
 import ohm.settings : Settings;
 import ohm.volta.parser : OhmParser;
@@ -58,6 +64,14 @@ protected:
 		this.mIncludes = settings.stdIncludePaths;
 		mIncludes ~= settings.includePaths;
 
+		// LLVM setup
+		LLVMLinkInMCJIT();
+
+		foreach (lib; settings.libraryFiles) {
+			LLVMLoadLibraryPermanently(toStringz(lib));
+		}
+
+		// AST setup
 		this.mModule = createSimpleModule(["ohm"]);
 		addImport(mModule, ["defaultsymbols"], false);
 		addImport(mModule, ["object"], true);
@@ -90,16 +104,13 @@ public:
 		debugVisitors ~= new PrettyPrinter();
 	}
 
-	void addTopLevel(string statements, Location loc)
+	void addTopLevel(ir.TopLevelBlock tlb)
 	{
-		auto tld = (cast(OhmParser)this.frontend).parseToplevel(statements, loc);
-		mModule.children.nodes ~= tld.nodes;
+		mModule.children.nodes ~= tlb.nodes;
 	}
 
-	void addStatement(string statements, Location loc)
+	void addStatement(ir.Node[] nodes)
 	{
-		auto nodes = frontend.parseStatements(statements, loc);
-
 		auto lastNode = nodes[$-1];
 		auto otherNodes = nodes[0..$-1];
 
@@ -230,6 +241,32 @@ public:
 		debugPasses([copiedMod]);
 
 		return backend.getCompiledModuleState(copiedMod);
+	}
+
+	string execute(State state)
+	{
+		scope(exit) state.close();
+
+		string error;
+		LLVMExecutionEngineRef ee = null;
+		assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error) == 0, error);
+
+		foreach (path; settings.stdFiles) {
+			auto mod = loadModule(LLVMContextCreate(), path);
+			LLVMAddModule(ee, mod);
+		}
+
+		// workaround which calls ee->finalizeObjects, which makes
+		// LLVMRunStaticConstructors not segfault
+		LLVMDisposeGenericValue(LLVMRunFunction(ee, "vmain", []));
+		LLVMRunStaticConstructors(ee);
+
+		LLVMValueRef func;
+		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);
+		LLVMGenericValueRef val = LLVMRunFunction(ee, func, 0, null);
+		scope(exit) LLVMDisposeGenericValue(val);
+
+		return to!string(LLVMGenericValueToInt(val, false));
 	}
 
 protected:

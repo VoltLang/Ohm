@@ -12,6 +12,7 @@ class Settings : VoltSettings
 {
 public:
 	string historyFile = buildNormalizedPath("~", ".ohm_history"); ///< The --history argument.
+	bool showStackTraces = false;
 
 	this(string execDir)
 	{
