@@ -217,6 +217,9 @@ public:
 		}
 		scope(exit) debugPasses([copiedMod]);
 
+		// reset leftover state
+		languagePass.reset();
+
 		// After we have loaded all of the modules
 		// setup the pointers, this allows for suppling
 		// a user defined object module.
