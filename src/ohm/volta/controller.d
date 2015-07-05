@@ -204,7 +204,7 @@ public:
 				}
 			}
 		}
-		scope(exit) debugPasses(mods);
+		scope(exit) debugPasses([copiedMod]);
 
 		// After we have loaded all of the modules
 		// setup the pointers, this allows for suppling
@@ -227,7 +227,7 @@ public:
 		// All modules need to be run trough phase3.
 		languagePass.phase3(mods);
 
-		debugPasses(mods);
+		debugPasses([copiedMod]);
 
 		return backend.getCompiledModuleState(copiedMod);
 	}
