@@ -10,6 +10,23 @@ import volt.token.source : Source;
 import volt.token.stream : TokenType;
 
 
+ir.Node[] removeEmptyNodes(ir.Node[] nodes) {
+	ir.Node[] result;
+
+	foreach (node; nodes) {
+		switch (node.nodeType()) with (ir.NodeType) {
+			case EmptyTopLevel:
+			case EmptyStatement:
+				continue;
+			default:
+				result ~= node;
+		}
+	}
+
+	return result;
+}
+
+
 class OhmParser : VoltaParser
 {
 public:
@@ -22,6 +39,14 @@ public:
 
 		match(ts, TokenType.Begin);
 
-		return parseTopLevelBlock(ts, TokenType.End, inModule);
+		auto tlb = parseTopLevelBlock(ts, TokenType.End, inModule);
+		tlb.nodes = removeEmptyNodes(tlb.nodes);
+		return tlb;
 	}
+
+	override ir.Node[] parseStatements(string source, Location loc)
+	{
+		return removeEmptyNodes(super.parseStatements(source, loc));
+	}
+
 }

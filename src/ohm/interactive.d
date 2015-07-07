@@ -80,7 +80,13 @@ protected:
 
 		saveLine(line);
 
-		auto nodes = parser.parseStatements(line, location);
+		// append ; automatically, the parser generates Empty* nodes for it,
+		// but they are ignored later on, so this is fine.
+		auto nodes = parser.parseStatements(line ~ ";", location);
+		if (nodes.length == 0) {
+			throw new ContinueException();
+		}
+
 		controller.addStatement(nodes);
 	}
 

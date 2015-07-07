@@ -34,7 +34,6 @@ import ohm.volta.backend : OhmBackend;
 import ohm.volta.util : createSimpleModule, createSimpleFunction, addImport;
 
 
-
 class OhmController : Controller
 {
 public:
