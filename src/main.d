@@ -13,7 +13,9 @@ import volt.license;
 import volt.controller;
 import volt.util.path;
 
-import ohm.interactive : Interactive, InteractiveConsole;
+import ohm.interfaces : Reader, Writer, Interactive;
+import ohm.interactive : InteractiveConsole;
+import ohm.io : StdinReadlineReader, StdoutWriter;
 import ohm.settings : Settings, expandTilde;
 
 
@@ -41,7 +43,10 @@ int main(string[] args)
 
 	settings.historyFile = absolutePath(expandTilde(settings.historyFile));
 
-	Interactive interactive = new InteractiveConsole(settings);
+	Reader reader = new StdinReadlineReader(settings);
+	Writer writer = new StdoutWriter();
+
+	Interactive interactive = new InteractiveConsole(settings, reader, writer);
 	interactive.run();
 
 	return 0;
