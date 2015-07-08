@@ -1,6 +1,6 @@
 module ohm.interactive;
 
-import std.stdio : writeln, writefln;
+import std.string : format;
 
 import volt.token.location : Location;
 import volt.llvm.interfaces : State;
@@ -48,8 +48,7 @@ public:
 				break;
 			} catch (CompilerError e) {
 				writer.writeOther(
-					settings.showStackTraces ? e.toString() : e.msg,
-					location.line + 1
+					settings.showStackTraces ? e.toString() : e.msg
 				);
 			}
 		}
@@ -62,13 +61,13 @@ public:
 		auto state = controller.compile();
 		auto result = controller.execute(state);
 
-		writer.writeResult(result, location.line + 1);
+		writer.writeResult(result, outputPrompt);
 	}
 
 protected:
 	void processInput()
 	{
-		string input = reader.getInput(location.line + 1);
+		string input = reader.getInput(inputPrompt);
 
 		// append ; automatically, the parser generates Empty* nodes for it,
 		// but they are ignored later on, so this is fine.
@@ -78,5 +77,15 @@ protected:
 		}
 
 		controller.addStatement(nodes);
+	}
+
+	@property string inputPrompt()
+	{
+		return format("In [%d]: ", location.line + 1);
+	}
+
+	@property string outputPrompt()
+	{
+		return format("Out [%d]: ", location.line + 1);
 	}
 }

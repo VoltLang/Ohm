@@ -1,7 +1,7 @@
 module ohm.io;
 
 
-import std.stdio : writeln, writefln;
+import std.stdio : writeln, stdout;
 import std.string : format, strip;
 
 import lib.editline.editline;
@@ -9,6 +9,13 @@ import lib.editline.editline;
 import ohm.interfaces : Reader, Writer;
 import ohm.settings : Settings;
 import ohm.exceptions : ExitException;
+import ohm.util : balancedParens;
+
+
+enum Parens {
+	Open = ['(', '[', '{'],
+	Close = [')', ']', '}'],
+}
 
 
 class StdinReadlineReader : Reader
@@ -24,15 +31,21 @@ public:
 		read_history(settings.historyFile);
 	}
 
-	string getInput(size_t line)
+	string getInput(string prompt)
 	{
 		string input;
 
 		do {
 			writeln();
-			input = readline("In [%d]: ".format(line));
-			if (input is null) throw new ExitException();
+			input = getLine(prompt);
 		} while (strip(input).length == 0);
+
+		prompt = format(format("%%%ds", prompt.length), "...: ");
+		while (!balancedParens(input, Parens.Open, Parens.Close)) {
+			input = input ~ "\n" ~ getLine(prompt);
+		}
+
+		saveInput(input);
 
 		return input;
 	}
@@ -42,20 +55,28 @@ public:
 		add_history(inp);
 		write_history(settings.historyFile);
 	}
+
+protected:
+	string getLine(string prompt)
+	{
+		auto line = readline(prompt);
+		if (line is null) throw new ExitException();
+		return line;
+	}
 }
 
 
 class StdoutWriter : Writer
 {
 public:
-	void writeResult(string output, size_t line)
+	void writeResult(string output, string prompt)
 	{
 		if (output.length > 0) {
-			writefln("Out [%d]: %s", line, output);
+			writeln(prompt, output);
 		}
 	}
 
-	void writeOther(string output, size_t line)
+	void writeOther(string output)
 	{
 		writeln(output);
 	}

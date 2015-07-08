@@ -11,15 +11,15 @@ public:
 interface Reader
 {
 public:
-	string getInput(size_t line);
+	string getInput(string prompt);
 }
 
 interface Writer
 {
 public:
-	void writeResult(string output, size_t line);
+	void writeResult(string output, string prompt);
 
-	void writeOther(string output, size_t line);
+	void writeOther(string output);
 }
 
 
