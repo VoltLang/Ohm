@@ -19,14 +19,13 @@ LLVM_CONFIG	?= llvm-config
 LLVM_LDFLAGS	?= $(shell $(LLVM_CONFIG) --libs core analysis bitwriter bitreader linker target x86codegen executionengine interpreter mcjit) $(shell $(LLVM_CONFIG) --ldflags)
 
 PKG_CONFIG	?= pkg-config
-LIBEDIT_LDFLAGS	?= $(shell $(PKG_CONFIG) --libs libedit)
 
 DCFLAGS		+= -Isrc/ -Isrc/Volta/src/
 DCFLAGS		+= $(DCDEBUG_FLAGS)
-LDDFLAGS	+= $(patsubst -%, $(LINKERFLAG)-%, $(LLVM_LDFLAGS)) $(patsubst -%, $(LINKERFLAG)-%, $(LIBEDIT_LDFLAGS)) $(LINKERFLAG)-ldl $(LINKERFLAG)-lstdc++ $(LINKERFLAG)-lffi
+LDDFLAGS	+= $(patsubst -%, $(LINKERFLAG)-%, $(LLVM_LDFLAGS)) $(LINKERFLAG)-ldl $(LINKERFLAG)-lstdc++ $(LINKERFLAG)-lffi $(LINKERFLAG)-lreadline
 
 DSOURCES	= $(call getSource,src/ohm,d) src/main.d \
-		  $(call getSource,src/lib/editline,d) $(call getSource,src/lib/llvm,d) \
+		  $(call getSource,src/lib/readline,d) $(call getSource,src/lib/llvm,d) \
 		  $(call getSource,src/Volta/src/volt,d) $(call getSource,src/Volta/src/lib,d)
 DOBJECTS	= $(patsubst %.d,$(DBUILD_PATH)/%$(EXT), $(DSOURCES))
 

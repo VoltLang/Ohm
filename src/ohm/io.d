@@ -4,7 +4,8 @@ module ohm.io;
 import std.stdio : writeln, stdout;
 import std.string : format, strip;
 
-import lib.editline.editline;
+import lib.readline.readline;
+import lib.readline.history;
 
 import ohm.interfaces : Reader, Writer;
 import ohm.settings : Settings;
@@ -15,6 +16,11 @@ import ohm.util : balancedParens;
 enum Parens {
 	Open = ['(', '[', '{'],
 	Close = [')', ']', '}'],
+}
+
+extern(C) int _indentSpaces() {
+	rl_insert_text("    \0".ptr);
+	return 0;
 }
 
 
@@ -41,9 +47,11 @@ public:
 		} while (strip(input).length == 0);
 
 		prompt = format(format("%%%ds", prompt.length), "...: ");
+		rl_startup_hook = &_indentSpaces;
 		while (!balancedParens(input, Parens.Open, Parens.Close)) {
 			input = input ~ "\n" ~ getLine(prompt);
 		}
+		rl_startup_hook = null;
 
 		saveInput(input);
 
