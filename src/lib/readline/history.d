@@ -13,15 +13,18 @@ alias write_history = lib.readline.c.history.write_history;
 
 void add_history(const(char)[] input)
 {
-	add_history(toStringz(input));
+	auto s = toStringz(input);
+	add_history(s);
 }
 
 int read_history(const(char)[] filename)
 {
-	return read_history(toStringz(filename));
+	auto s = toStringz(filename);
+	return read_history(s);
 }
 
 int write_history(const(char)[] filename)
 {
-	return read_history(toStringz(filename));
+	auto s = toStringz(filename);
+	return read_history(s);
 }

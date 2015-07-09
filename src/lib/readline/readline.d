@@ -64,7 +64,7 @@ int rl_bind_key(int key, void delegate(int, int) dg)
 
 int rl_unbind_key(int key)
 {
-	auto r = rl_unbind_key(key);
+	auto r = lib.readline.c.readline.rl_unbind_key(key);
 	if (r == 0) {
 		_rl_bind_key_dgs[key] = null;
 	}

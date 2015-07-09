@@ -6,6 +6,7 @@ public import lib.readline.c.keymaps;
 
 // This is very incomplete at the moment.
 
+@nogc nothrow @system:
 extern (C):
 
 
@@ -30,5 +31,7 @@ void rl_tty_unset_default_bindings(Keymap);
 
 /* Variables */
 extern __gshared rl_hook_func_t rl_startup_hook;
+
+extern __gshared rl_hook_func_t rl_event_hook;
 
 extern __gshared int rl_done;
