@@ -39,7 +39,7 @@ public:
 
 	void run()
 	{
-		for (;; location.line++) {
+		for (;;) {
 			try {
 				repl();
 			} catch (ContinueException e) {
@@ -51,6 +51,8 @@ public:
 					settings.showStackTraces ? e.toString() : e.msg
 				);
 			}
+
+			location.line++;
 		}
 	}
 
@@ -86,6 +88,6 @@ protected:
 
 	@property string outputPrompt()
 	{
-		return format("Out [%d]: ", location.line + 1);
+		return format("Out[%d]: ", location.line + 1);
 	}
 }
