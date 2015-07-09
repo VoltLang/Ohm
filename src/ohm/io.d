@@ -52,8 +52,9 @@ public:
 
 	~this()
 	{
-		rl_unbind_key(CTRL('c'));
 		rl_startup_hook = null;
+		rl_unbind_key(CTRL('c'));
+		rl_tty_set_default_bindings(rl_get_keymap());
 	}
 
 	string getInput(string prompt)
@@ -65,12 +66,16 @@ public:
 			input = getLine(prompt);
 		} while (strip(input).length == 0);
 
-		setIndent(4);
 		scope(exit) resetIndent();
 
 		prompt = format(format("%%%ds", prompt.length), "...: ");
-		while (!balancedParens(input, Parens.Open, Parens.Close)) {
+		auto balance = balancedParens(input, Parens.Open, Parens.Close);
+		while (balance > 0) {
+			setIndent(balance*4);
+
 			input = input ~ "\n" ~ getLine(prompt);
+
+			balance = balancedParens(input, Parens.Open, Parens.Close);
 		}
 
 		saveInput(input);

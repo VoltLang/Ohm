@@ -1,35 +1,50 @@
 module ohm.util;
 
 
-bool balancedParens(in const(char)[] inp, char open, char close, size_t maxDepth = -1)
+enum Balance
 {
-	size_t balance = 0;
+	BALANCED,
+	UNBALANCED,
+	UNBALANCABLE
+}
+
+
+int balancedParens(in const(char)[] inp, char open, char close)
+{
+	int balance = 0;
 
 	foreach (c; inp) {
 		if (c == open) {
-			if (balance > maxDepth) {
-				return false;
-			}
 			++balance;
 		} else if (c == close) {
 			if (balance <= 0) {
-				return false;
+				// this can't be balanced anymore e.g.
+				// void function () }
+				//                  ^
+				return -1;
 			}
 			--balance;
 		}
 	}
 
-	return balance == 0;
+	return balance;
 }
 
-bool balancedParens(in const(char[]) inp, const(char)[] open, const(char)[] close, size_t maxDepth = -1)
+int balancedParens(in const(char[]) inp, const(char)[] open, const(char)[] close)
 in { assert(open.length == close.length); }
 body {
+	int totalBalance = 0;
+
 	for (size_t i = 0; i < open.length; ++i) {
-		if (!balancedParens(inp, open[i], close[i], maxDepth)) {
-			return false;
+		auto r = balancedParens(inp, open[i], close[i]);
+
+		if (r == -1) {
+			// this can't be balanced anymore
+			return -1;
 		}
+
+		totalBalance += r;
 	}
 
-	return true;
+	return totalBalance;
 }

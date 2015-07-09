@@ -25,6 +25,7 @@ int rl_unbind_key(int);
 
 Keymap rl_get_keymap();
 
+void rl_tty_set_default_bindings(Keymap);
 void rl_tty_unset_default_bindings(Keymap);
 
 /* Variables */
