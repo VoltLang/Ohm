@@ -34,6 +34,23 @@ import ohm.volta.backend : OhmBackend;
 import ohm.volta.util : createSimpleModule, createSimpleFunction, addImport;
 
 
+__gshared size_t[string] _store;
+
+extern(C) void ohm_store(const(char)* varName, size_t value)
+{
+	auto s = to!string(varName);
+	writefln("STORE: %s = %s", s, value);
+	_store[s] = value;
+}
+
+extern(C) size_t ohm_load(const(char)* varName)
+{
+	auto s = to!string(varName);
+	writefln("LOAD: %s", s);
+	return _store[s];
+}
+
+
 class OhmController : Controller
 {
 public:
@@ -84,6 +101,9 @@ protected:
 		// the runtime expects a main function, without this
 		// function we would get linker errors (from the JIT).
 		mModule.children.nodes ~= createSimpleFunction("main");
+
+		LLVMAddSymbol("__ohm_store\0".ptr, cast(void*)&ohm_store);
+		LLVMAddSymbol("__ohm_load\0".ptr, cast(void*)&ohm_load);
 	}
 
 public:

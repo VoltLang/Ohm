@@ -16,7 +16,7 @@ VOLTA		= src$(PATH_SEP)Volta
 VOLTA_BIN	= $(VOLTA)$(PATH_SEP)rt$(PATH_SEP)libvrt-host.bc
 
 LLVM_CONFIG	?= llvm-config
-LLVM_LDFLAGS	?= $(shell $(LLVM_CONFIG) --libs core analysis bitwriter bitreader linker target x86codegen executionengine interpreter mcjit) $(shell $(LLVM_CONFIG) --ldflags)
+LLVM_LDFLAGS	?= $(shell $(LLVM_CONFIG) --libs core analysis bitwriter bitreader linker target x86codegen executionengine interpreter mcjit support) $(shell $(LLVM_CONFIG) --ldflags)
 
 PKG_CONFIG	?= pkg-config
 
@@ -29,8 +29,8 @@ DSOURCES	= $(call getSource,src/ohm,d) src/main.d \
 		  $(call getSource,src/Volta/src/volt,d) $(call getSource,src/Volta/src/lib,d)
 DOBJECTS	= $(patsubst %.d,$(DBUILD_PATH)/%$(EXT), $(DSOURCES))
 
-CSOURCES	=
-COBJECTS	=
+CSOURCES	= $(call getSource,src/lib/c,cpp)
+COBJECTS	= $(patsubst %.cpp,$(CBUILD_PATH)/%$(EXT), $(CSOURCES))
 
 
 ifeq ($(OS),"Linux")
@@ -81,5 +81,10 @@ $(DBUILD_PATH)/%$(EXT) : %.d
 
 $(CBUILD_PATH)/%$(EXT) : %.c
 	@echo "  CC     $<"
+	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(CBUILD_PATH)/%$(EXT) : %.cpp
+	@echo "  CC     $<"
+	@mkdir -p $(dir $@)
+	@$(CC) -std=c++0x $(CFLAGS) -c $< -o $@
