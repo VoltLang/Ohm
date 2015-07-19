@@ -1,4 +1,4 @@
-module ohm.volta.controller;
+module ohm.eval.controller;
 
 import std.algorithm : remove, endsWith;
 import std.path : dirSeparator;
@@ -29,9 +29,9 @@ import lib.llvm.core;
 import lib.llvm.support;
 
 import ohm.settings : Settings;
-import ohm.volta.parser : OhmParser;
-import ohm.volta.backend : OhmBackend;
-import ohm.volta.util : createSimpleModule, createSimpleFunction, addImport;
+import ohm.eval.parser : OhmParser;
+import ohm.eval.backend : OhmBackend;
+import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
 
 
 __gshared size_t[string] _store;

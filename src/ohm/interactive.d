@@ -7,9 +7,9 @@ import volt.llvm.interfaces : State;
 import volt.exceptions : CompilerError;
 
 import ohm.interfaces : Interactive, Reader, Writer;
-import ohm.volta.controller : OhmController;
-import ohm.volta.backend : OhmBackend;
-import ohm.volta.parser : OhmParser;
+import ohm.eval.controller : OhmController;
+import ohm.eval.backend : OhmBackend;
+import ohm.eval.parser : OhmParser;
 import ohm.settings : Settings;
 import ohm.exceptions : ExitException, ContinueException;
 

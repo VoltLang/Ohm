@@ -1,4 +1,4 @@
-module ohm.volta.util;
+module ohm.eval.util;
 
 
 import ir = volt.ir.ir;
