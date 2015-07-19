@@ -12,17 +12,16 @@ ir.Function createSimpleFunction(string name)
 	return createSimpleFunction(location, name);
 }
 
-
 ir.Function createSimpleFunction(Location location, string name)
 {
 	auto fn = new ir.Function();
 	fn.name = name;
 	fn.location = location;
 	fn.type = new ir.FunctionType();
+	fn.type.location = fn.location;
 	fn.type.ret = new ir.PrimitiveType(ir.PrimitiveType.Kind.Void);
 	fn.type.ret.location = fn.location;
 	fn.params = [];
-	fn.type.location = fn.location;
 	fn._body = new ir.BlockStatement();
 	return fn;
 }
@@ -49,7 +48,6 @@ ir.Module createSimpleModule(string[] identifiers)
 	return createSimpleModule(location, identifiers);
 }
 
-
 ir.Module createSimpleModule(Location location, string[] identifiers)
 {
 	auto mod = new ir.Module();
@@ -69,14 +67,12 @@ ir.Import createImport(Location location, string[] name, bool _static = false)
 	return _import;
 }
 
-
 ir.Import addImport(ir.Module mod, string[] name, bool _static = false)
 {
 	auto _import = createImport(mod.location, name, _static);
 	mod.children.nodes ~= _import;
 	return _import;
 }
-
 
 ir.Import addImport(Location location, ir.Module mod, string[] name, bool _static = false)
 {

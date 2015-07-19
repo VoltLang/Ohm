@@ -5,6 +5,7 @@ import std.path : dirSeparator;
 import std.file : remove, exists;
 import std.process : wait, spawnShell;
 import std.stdio : write, writeln, writefln, writef;
+import core.stdc.stdint : int64_t;
 
 import ir = volt.ir.ir;
 import volt.ir.util;
@@ -31,24 +32,8 @@ import lib.llvm.support;
 import ohm.settings : Settings;
 import ohm.eval.parser : OhmParser;
 import ohm.eval.backend : OhmBackend;
+import ohm.eval.datastore : VariableStore;
 import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
-
-
-__gshared size_t[string] _store;
-
-extern(C) void ohm_store(const(char)* varName, size_t value)
-{
-	auto s = to!string(varName);
-	writefln("STORE: %s = %s", s, value);
-	_store[s] = value;
-}
-
-extern(C) size_t ohm_load(const(char)* varName)
-{
-	auto s = to!string(varName);
-	writefln("LOAD: %s", s);
-	return _store[s];
-}
 
 
 class OhmController : Controller
@@ -58,6 +43,7 @@ public:
 	OhmParser frontend;
 	VoltLanguagePass languagePass;
 	OhmBackend backend;
+	VariableStore varStore;
 
 	Pass[] debugVisitors;
 
@@ -76,6 +62,7 @@ protected:
 		this.frontend = f;
 		this.languagePass = lp;
 		this.backend = b;
+		this.varStore = new VariableStore();
 
 		this.mIncludes = settings.stdIncludePaths;
 		mIncludes ~= settings.includePaths;
@@ -92,6 +79,14 @@ protected:
 		addImport(mModule, ["defaultsymbols"], false);
 		addImport(mModule, ["object"], true);
 
+		auto tlb = frontend.parseToplevel("
+			extern(C) {
+				void __ohm_store(size_t id, const(char)* varName, int value);
+				int __ohm_load(size_t id, const(char)* varName);
+			}
+		", Location());
+		mModule.children.nodes ~= tlb.nodes;
+
 		// main function which works as a scope and
 		// will actually be called by the JIT
 		this.mREPLFunc = createSimpleFunction("__ohm_main");
@@ -101,9 +96,6 @@ protected:
 		// the runtime expects a main function, without this
 		// function we would get linker errors (from the JIT).
 		mModule.children.nodes ~= createSimpleFunction("main");
-
-		LLVMAddSymbol("__ohm_store\0".ptr, cast(void*)&ohm_store);
-		LLVMAddSymbol("__ohm_load\0".ptr, cast(void*)&ohm_load);
 	}
 
 public:
@@ -288,7 +280,7 @@ public:
 		LLVMGenericValueRef val = LLVMRunFunction(ee, func, 0, null);
 		scope(exit) LLVMDisposeGenericValue(val);
 
-		return to!string(LLVMGenericValueToInt(val, false));
+		return to!string(cast(int64_t)LLVMGenericValueToInt(val, true));
 	}
 
 protected:
