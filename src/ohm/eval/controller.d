@@ -33,6 +33,7 @@ import ohm.settings : Settings;
 import ohm.eval.parser : OhmParser;
 import ohm.eval.backend : OhmBackend;
 import ohm.eval.datastore : VariableStore;
+import ohm.eval.languagepass : OhmLanguagePass;
 import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
 
 
@@ -41,7 +42,7 @@ class OhmController : Controller
 public:
 	Settings settings;
 	OhmParser frontend;
-	VoltLanguagePass languagePass;
+	OhmLanguagePass languagePass;
 	OhmBackend backend;
 	VariableStore varStore;
 
@@ -56,7 +57,7 @@ protected:
 	ir.Module[string] mModulesByFile;
 
 protected:
-	this(Settings s, OhmParser f, VoltLanguagePass lp, OhmBackend b)
+	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
 	{
 		this.settings = s;
 		this.frontend = f;
@@ -104,7 +105,7 @@ public:
 		this.settings = s;
 
 		auto p = new OhmParser();
-		auto lp = new VoltLanguagePass(s, p, this);
+		auto lp = new OhmLanguagePass(s, p, this);
 		auto b = new OhmBackend(lp);
 
 		this(s, p, lp, b);

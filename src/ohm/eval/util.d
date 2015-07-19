@@ -2,6 +2,8 @@ module ohm.eval.util;
 
 
 import ir = volt.ir.ir;
+import volt.semantic.lookup;
+import volt.interfaces : LanguagePass;
 import volt.token.location : Location;
 
 
@@ -79,4 +81,11 @@ ir.Import addImport(Location location, ir.Module mod, string[] name, bool _stati
 	auto _import = createImport(location, name, _static);
 	mod.children.nodes ~= _import;
 	return _import;
+}
+
+
+ir.Function lookupFunction(LanguagePass lp, ir.Module mod, Location loc, string name)
+{
+	auto store = lookupOnlyThisScope(lp, mod.myScope, loc, name);
+	return ensureFunction(mod.myScope, loc, name, store);
 }
