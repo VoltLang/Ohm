@@ -126,22 +126,7 @@ public:
 		auto lastNode = nodes[$-1];
 		auto otherNodes = nodes[0..$-1];
 
-		// remove the last return statement
-		ir.Node oldLastNode = null;
-		if (mREPLFunc._body.statements.length) {
-			oldLastNode = mREPLFunc._body.statements[$-1];
-			--mREPLFunc._body.statements.length; // cut off the last element
-		}
-
-		/*if (old && cast(ir.ReturnStatement) old) {
-			ir.Exp exp = (cast(ir.ReturnStatement) old).exp;
-
-			if (cast(ir.BinOp) exp) {
-				mREPLFunc._body.statements ~= copyExp(exp);
-			}
-		}*/
-
-		mREPLFunc._body.statements ~= otherNodes;
+		mREPLFunc._body.statements = otherNodes;
 
 		ir.Exp exp = null;
 		if (auto expStmt = cast(ir.ExpStatement)lastNode) {
