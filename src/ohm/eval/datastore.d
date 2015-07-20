@@ -12,13 +12,14 @@ import lib.llvm.c.Support : LLVMAddSymbol;
 private {
 	__gshared VariableStore[size_t] _stores;
 
-	extern(C) void ohm_store(size_t id, const(char)* varName, int value)
+	extern(C) int ohm_store(size_t id, const(char)* varName, int value)
 	{
 		try {
 			_stores[id].setInt(to!string(varName), value);
 		} catch (Throwable t) { // LLVM doesn't like D exceptions from within JITed functions
 			stderr.writeln("Ohm Store ERROR: ", t);
 		}
+		return value;
 	}
 
 	extern(C) int ohm_load(size_t id, const(char)* varName)

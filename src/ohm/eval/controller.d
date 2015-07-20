@@ -82,7 +82,7 @@ protected:
 
 		auto tlb = frontend.parseToplevel("
 			extern(C) {
-				void __ohm_store(size_t id, const(char)* varName, int value);
+				int __ohm_store(size_t id, const(char)* varName, int value);
 				int __ohm_load(size_t id, const(char)* varName);
 			}
 		", Location());
