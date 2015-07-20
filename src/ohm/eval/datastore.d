@@ -80,12 +80,24 @@ public:
 		return _id;
 	}
 
+	void init(string name, ir.Type type)
+	{
+		StoreEntry entry;
+		entry.type = type;
+
+		// maybe check if this name already exists and fail
+		data[name] = entry;
+	}
+
+	bool has(string name)
+	{
+		return (name in data) !is null;
+	}
+
 	// just a really simple implementation for now
 	void setInt(string name, int value)
 	{
-		StoreEntry entry;
-		entry.data.unsigned = cast(ulong)value;
-		data[name] = entry;
+		data[name].data.unsigned = cast(ulong)value;
 	}
 
 	int getInt(string name)
