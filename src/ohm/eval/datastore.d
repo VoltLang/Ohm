@@ -51,6 +51,7 @@ private:
 public:
 	static struct StoreEntry
 	{
+		string name;
 		ir.Type type;
 
 		union Data {
@@ -83,6 +84,7 @@ public:
 	void init(string name, ir.Type type)
 	{
 		StoreEntry entry;
+		entry.name = name;
 		entry.type = type;
 
 		// maybe check if this name already exists and fail
@@ -92,6 +94,11 @@ public:
 	bool has(string name)
 	{
 		return (name in data) !is null;
+	}
+
+	StoreEntry[] values()
+	{
+		return data.values;
 	}
 
 	// just a really simple implementation for now

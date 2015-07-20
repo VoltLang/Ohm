@@ -26,6 +26,7 @@ import volt.interfaces;
 import volt.semantic.languagepass : VoltLanguagePass;
 
 import ohm.eval.storeload;
+import ohm.eval.vardeclinserter;
 
 
 class OhmLanguagePass : VoltLanguagePass
@@ -45,16 +46,17 @@ public:
 			return;
 		}
 		postParse ~= new AttribRemoval(this);
+		postParse ~= new VarDeclInserter(this);
 		postParse ~= new Gatherer(this);
 
 		passes2 = [];
 		passes2 ~= new SimpleTrace(this);
-		passes2 ~= new StoreLoad(this);
 		passes2 ~= new ExTyper(this);
 		passes2 ~= new CFGBuilder(this);
 		passes2 ~= new IrVerifier();
 
 		passes3 = [];
+		passes3 ~= new StoreLoad(this);
 		passes3 ~= new LlvmLowerer(this);
 		passes3 ~= new NewReplacer(this);
 		passes3 ~= new TypeidReplacer(this);

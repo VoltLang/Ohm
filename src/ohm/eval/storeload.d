@@ -16,7 +16,7 @@ import ohm.eval.languagepass : OhmLanguagePass;
 import ohm.eval.util : lookupFunction;
 
 
-class StoreLoad : NullVisitor, Pass
+class StoreLoad : ScopeManager, Pass
 {
 public:
 	LanguagePass lp;
@@ -49,42 +49,35 @@ public:
 	override Status enter(ir.Function fn)
 	{
 		if (fn.isAutoReturn) {
-			mReplFuncLevel += 1;
+			++mReplFuncLevel;
 		}
 
-		return Continue;
+		return super.enter(fn);
 	}
 
 	override Status leave(ir.Function fn)
 	{
 		if (fn.isAutoReturn) {
-			mReplFuncLevel -= 1;
+			--mReplFuncLevel;
 		}
 
-		return Continue;
+		return super.leave(fn);
 	}
 
-	override Status enter(ir.Variable d)
+	override Status visit(ref ir.Exp exp, ir.ExpReference expRef)
 	{
-		if (mReplFuncLevel == 0)
+		auto var = cast(ir.Variable) expRef.decl;
+		if (mReplFuncLevel == 0 || var is null || !varStore.has(var.name))
 			return Continue;
 
-		varStore.init(d.name, d.type);
-
-		return Continue;
-	}
-	//override Status leave(ir.Variable d);
-
-	override Status visit(ref ir.Exp exp, ir.IdentifierExp identExp)
-	{
-		if (mReplFuncLevel == 0 || !varStore.has(identExp.value))
-			return Continue;
-
-		auto loc = exp.location;
+		auto loc = expRef.location;
 
 		// replace any unidentifier identifier with a call to __ohm_load
-		auto fn = lookupFunction(lp, thisModule, identExp.location, "__ohm_load");
-		exp = buildCall(loc, fn, [buildConstantSizeT(loc, lp, 1), buildConstantString(loc, identExp.value)], fn.name);
+		auto fn = lookupFunction(lp, thisModule, loc, "__ohm_load");
+		exp = buildCall(loc, fn, [
+			buildConstantSizeT(loc, lp, 1),
+			buildAccess(loc, buildConstantString(loc, var.name), "ptr"),
+		], fn.name);
 
 		return Continue;
 	}
