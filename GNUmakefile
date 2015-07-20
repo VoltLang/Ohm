@@ -22,7 +22,7 @@ PKG_CONFIG	?= pkg-config
 
 DCFLAGS		+= -Isrc/ -Isrc/Volta/src/
 DCFLAGS		+= $(DCDEBUG_FLAGS)
-LDDFLAGS	+= $(patsubst -%, $(LINKERFLAG)-%, $(LLVM_LDFLAGS)) $(LINKERFLAG)-ldl $(LINKERFLAG)-lstdc++ $(LINKERFLAG)-lffi $(LINKERFLAG)-lreadline
+LDFLAGS		+= $(patsubst -%, $(LINKERFLAG)-%, $(LLVM_LDFLAGS)) $(LINKERFLAG)-ldl $(LINKERFLAG)-lstdc++ $(LINKERFLAG)-lffi $(LINKERFLAG)-lreadline
 
 DSOURCES	= $(call getSource,src/ohm,d) src/main.d \
 		  $(call getSource,src/lib/readline,d) $(call getSource,src/lib/llvm,d) \
@@ -34,7 +34,7 @@ COBJECTS	= $(patsubst %.cpp,$(CBUILD_PATH)/%$(EXT), $(CSOURCES))
 
 
 ifeq ($(OS),"Linux")
-	LDDFLAGS += $(LINKERFLAG)--no-as-needed $(patsubst -%, $(LINKERFLAG)-%, $(shell $(PKG_CONFIG) --libs bdw-gc))
+	LDFLAGS += $(LINKERFLAG)--no-as-needed $(patsubst -%, $(LINKERFLAG)-%, $(shell $(PKG_CONFIG) --libs bdw-gc))
 endif
 
 
@@ -61,7 +61,7 @@ clean-all: clean
 
 $(TARGET): $(COBJECTS) $(DOBJECTS)
 	@echo "  LD     $(TARGET)"
-	@$(DC) $(LDDFLAGS) $(COBJECTS) $(DOBJECTS) $(OUTPUT)$(TARGET)
+	@$(DC) $(LDFLAGS) $(COBJECTS) $(DOBJECTS) $(OUTPUT)$(TARGET)
 
 
 $(VOLTA):
