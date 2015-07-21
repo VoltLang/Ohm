@@ -6,6 +6,7 @@ import std.string : format, strip, toStringz;
 import std.array : replicate;
 
 import core.stdc.signal;
+import core.stdc.time;
 
 import lib.readline.readline;
 import lib.readline.history;
@@ -32,10 +33,21 @@ extern(C) int rlStartupHook()
 }
 
 private __gshared bool _signalGotCtrlC;
+private __gshared time_t _lastCtrlC = 0;
 private extern(C) void ctrlCSignalHandler(int sig) nothrow @system @nogc
 {
+	// TODO windows
 	if (sig == SIGINT) {
-		// TODO windows
+		auto now = time(null);
+
+		// reraise the signal if in the last 2 seconds Ctrl+C got pressed more than once
+		// and it was not during readline input (which resets _signalGotCtrlC).
+		if (difftime(now, _lastCtrlC) < 2 && _signalGotCtrlC) {
+			signal(sig, SIG_DFL);
+			raise(sig);
+		}
+		_lastCtrlC = now;
+
 		_signalGotCtrlC = true;
 	}
 }
