@@ -12,31 +12,20 @@ import lib.llvm.c.Support : LLVMAddSymbol;
 private {
 	__gshared VariableStore[size_t] _stores;
 
-	extern(C) int ohm_store(size_t id, const(char)* varName, int value)
+	extern(C) void* ohm_get_pointer(size_t id, const(char)* varName)
 	{
 		try {
-			_stores[id].setInt(to!string(varName), value);
-		} catch (Throwable t) { // LLVM doesn't like D exceptions from within JITed functions
-			stderr.writeln("Ohm Store ERROR: ", t);
-		}
-		return value;
-	}
-
-	extern(C) int ohm_load(size_t id, const(char)* varName)
-	{
-		try {
-			return _stores[id].getInt(to!string(varName));
+			return _stores[id].getPointer(to!string(varName));
 		} catch (Throwable t) {
-			stderr.writeln("Ohm Load ERROR: ", t);
+			stderr.writeln("Ohm Get Pointer ERROR: ", t);
 		}
-		return 0;
+		return null;
 	}
 }
 
 static this()
 {
-	LLVMAddSymbol("__ohm_store", cast(void*)&ohm_store);
-	LLVMAddSymbol("__ohm_load", cast(void*)&ohm_load);
+	LLVMAddSymbol("__ohm_get_pointer", cast(void*)&ohm_get_pointer);
 }
 
 
@@ -52,6 +41,7 @@ private:
 public:
 	static struct StoreEntry
 	{
+	public:
 		string name;
 		ir.Type type;
 
@@ -62,6 +52,7 @@ public:
 		}
 
 		Data data;
+		bool pointsToMemory;
 	}
 
 protected:
@@ -88,8 +79,28 @@ public:
 		entry.name = name;
 		entry.type = type;
 
+		// TODO allocate memory if necessary,
+		// store the memory region in data.ptr
+		entry.pointsToMemory = false;
+
 		// maybe check if this name already exists and fail
 		data[name] = entry;
+	}
+
+	void* getPointer(string name)
+	{
+		auto entry = &data[name];
+		assert(entry !is null);
+
+		if (entry.pointsToMemory) {
+			return entry.data.ptr;
+		}
+		return &(entry.data);
+	}
+
+	ir.Type getType(string name)
+	{
+		return data[name].type;
 	}
 
 	bool has(string name)
@@ -100,16 +111,5 @@ public:
 	StoreEntry[] values()
 	{
 		return data.values;
-	}
-
-	// just a really simple implementation for now
-	void setInt(string name, int value)
-	{
-		data[name].data.unsigned = cast(ulong)value;
-	}
-
-	int getInt(string name)
-	{
-		return cast(int)data[name].data.unsigned;
 	}
 }
