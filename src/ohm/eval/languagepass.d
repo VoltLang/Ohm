@@ -56,8 +56,8 @@ public:
 		passes2 ~= new IrVerifier();
 
 		passes3 = [];
-		passes3 ~= new StoreLoad(this);
 		passes3 ~= new LlvmLowerer(this);
+		passes3 ~= new StoreLoad(this);
 		passes3 ~= new NewReplacer(this);
 		passes3 ~= new TypeidReplacer(this);
 		passes3 ~= new MangleWriter(this);
