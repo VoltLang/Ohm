@@ -63,7 +63,7 @@ public:
 		auto state = controller.compile();
 		auto result = controller.execute(state);
 
-		writer.writeResult(result, outputPrompt);
+		writer.writeResult(result.toString(), outputPrompt);
 	}
 
 protected:

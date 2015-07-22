@@ -5,6 +5,7 @@ import ir = volt.ir.ir;
 import volt.ir.util;
 import volt.interfaces;
 import volt.semantic.lookup;
+import volt.semantic.classify;
 import volt.visitor.visitor;
 import volt.visitor.scopemanager;
 
@@ -62,6 +63,37 @@ public:
 		return super.leave(fn);
 	}
 
+	override Status enter(ir.ReturnStatement ret)
+	{
+		auto fn = getParentFunction(current);
+		if (!fn.isAutoReturn)
+			return Continue;
+
+		varStore.initReturn(fn.type.ret);
+
+		if (ret.exp is null)
+			return Continue;
+
+		auto loc = ret.location;
+		auto owning = cast(ir.BlockStatement) current.node;
+		assert(owning !is null);
+
+		auto fnRetPtr = lookupFunction(lp, thisModule, loc, "__ohm_get_return_pointer");
+		auto retVar = buildDeref(loc, buildCastSmart(
+			loc, buildPtrSmart(loc, fn.type.ret), buildCall(
+				loc, fnRetPtr, [buildConstantSizeT(loc, lp, cast(int) varStore.id)], fnRetPtr.name
+			)
+		));
+		acceptExp(ret.exp, this);
+		auto assignStmt = buildExpStat(loc, buildAssign(loc, retVar, ret.exp));
+
+		ret.exp = null;
+		fn.type.ret = buildVoid(loc);
+		owning.statements = owning.statements[0..$-1] ~ assignStmt ~ ret;
+
+		return Continue;
+	}
+
 	override Status visit(ref ir.Exp exp, ir.ExpReference expRef)
 	{
 		auto var = cast(ir.Variable) expRef.decl;
@@ -72,7 +104,7 @@ public:
 
 		auto loc = expRef.location;
 		auto fn = lookupFunction(lp, thisModule, loc, "__ohm_get_pointer");
-		auto type = varStore.getType(var.name);
+		auto type = varStore.get(var.name).type;
 
 		exp = buildDeref(loc, buildCastSmart(
 			loc, buildPtrSmart(loc, type), buildCall(

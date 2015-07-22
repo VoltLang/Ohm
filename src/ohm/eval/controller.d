@@ -32,8 +32,8 @@ import lib.llvm.support;
 import ohm.settings : Settings;
 import ohm.eval.parser : OhmParser;
 import ohm.eval.backend : OhmBackend;
-import ohm.eval.datastore : VariableStore;
 import ohm.eval.languagepass : OhmLanguagePass;
+import ohm.eval.datastore : VariableStore, StoreEntry;
 import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
 
 
@@ -83,6 +83,7 @@ protected:
 		auto tlb = frontend.parseToplevel("
 			extern(C) {
 				void* __ohm_get_pointer(size_t id, const(char)* varName);
+				void* __ohm_get_return_pointer(size_t id);
 			}
 		", Location());
 		mModule.children.nodes ~= tlb.nodes;
@@ -242,7 +243,7 @@ public:
 		return backend.getCompiledModuleState(copiedMod);
 	}
 
-	string execute(State state)
+	StoreEntry execute(State state)
 	{
 		scope(exit) state.close();
 
@@ -262,10 +263,9 @@ public:
 
 		LLVMValueRef func;
 		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);
-		LLVMGenericValueRef val = LLVMRunFunction(ee, func, 0, null);
-		scope(exit) LLVMDisposeGenericValue(val);
+		LLVMDisposeGenericValue(LLVMRunFunction(ee, func, 0, null));
 
-		return to!string(cast(int64_t)LLVMGenericValueToInt(val, true));
+		return varStore.returnData;
 	}
 
 protected:

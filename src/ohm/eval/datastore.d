@@ -3,6 +3,7 @@ module ohm.eval.datastore;
 
 import std.conv : to;
 import std.stdio : stderr;
+import std.string : format;
 
 import ir = volt.ir.ir;
 
@@ -21,11 +22,55 @@ private {
 		}
 		return null;
 	}
+
+	extern(C) void* ohm_get_return_pointer(size_t id)
+	{
+		try {
+			return _stores[id].getReturnPointer();
+		} catch (Throwable t) {
+			stderr.writeln("Ohm Get Return Pointer ERROR: ", t);
+		}
+		return null;
+	}
 }
 
 static this()
 {
 	LLVMAddSymbol("__ohm_get_pointer", cast(void*)&ohm_get_pointer);
+	LLVMAddSymbol("__ohm_get_return_pointer", cast(void*)&ohm_get_return_pointer);
+}
+
+
+struct StoreEntry
+{
+public:
+	string name;
+	ir.Type type;
+
+	union Data {
+		void* ptr;
+		ulong unsigned;
+		real floating;
+		void[] array;
+	}
+
+	Data data;
+	bool pointsToMemory;
+
+public:
+	string toString()
+	{
+		if (type is null)
+			return null;
+
+		auto asPrim = cast(ir.PrimitiveType) type;
+		if (asPrim !is null && asPrim.type == ir.PrimitiveType.Kind.Void)
+			return null;
+
+		// TODO ir.Type + data -> string
+		// TODO use pointsToMemory
+		return format("<%s>: %s", type, cast(long)data.unsigned);
+	}
 }
 
 
@@ -39,24 +84,8 @@ private:
 	}
 
 public:
-	static struct StoreEntry
-	{
-	public:
-		string name;
-		ir.Type type;
-
-		union Data {
-			void* ptr;
-			ulong unsigned;
-			void[] array;
-		}
-
-		Data data;
-		bool pointsToMemory;
-	}
-
-protected:
 	StoreEntry[string] data;
+	StoreEntry returnData;
 
 private:
 	size_t _id;
@@ -76,31 +105,19 @@ public:
 	void init(string name, ir.Type type)
 	{
 		StoreEntry entry;
-		entry.name = name;
-		entry.type = type;
-
-		// TODO allocate memory if necessary,
-		// store the memory region in data.ptr
-		entry.pointsToMemory = false;
-
+		init(entry, name, type);
 		// maybe check if this name already exists and fail
 		data[name] = entry;
 	}
 
 	void* getPointer(string name)
 	{
-		auto entry = &data[name];
-		assert(entry !is null);
-
-		if (entry.pointsToMemory) {
-			return entry.data.ptr;
-		}
-		return &(entry.data);
+		return getPointer(data[name]);
 	}
 
-	ir.Type getType(string name)
+	ref StoreEntry get(string name)
 	{
-		return data[name].type;
+		return data[name];
 	}
 
 	bool has(string name)
@@ -111,5 +128,36 @@ public:
 	StoreEntry[] values()
 	{
 		return data.values;
+	}
+
+	void initReturn(ir.Type type)
+	{
+		init(returnData, "return", type);
+	}
+
+	void* getReturnPointer()
+	{
+		return getPointer(returnData);
+	}
+
+protected:
+	void init(out StoreEntry entry, string name, ir.Type type)
+	{
+		entry.name = name;
+		entry.type = type;
+
+		entry.data.unsigned = 0;
+
+		// TODO allocate memory if necessary,
+		// store the memory region in data.ptr
+		entry.pointsToMemory = false;
+	}
+
+	void* getPointer(ref StoreEntry entry)
+	{
+		if (entry.pointsToMemory) {
+			return entry.data.ptr;
+		}
+		return &(entry.data);
 	}
 }
