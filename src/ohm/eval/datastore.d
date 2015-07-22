@@ -6,6 +6,7 @@ import std.stdio : stderr;
 import std.string : format;
 
 import ir = volt.ir.ir;
+import volt.semantic.classify : size;
 
 import lib.llvm.c.Support : LLVMAddSymbol;
 
@@ -45,7 +46,9 @@ struct StoreEntry
 {
 public:
 	string name;
+
 	ir.Type type;
+	size_t size;
 
 	union Data {
 		void* ptr;
@@ -68,8 +71,11 @@ public:
 			return null;
 
 		// TODO ir.Type + data -> string
-		// TODO use pointsToMemory
-		return format("<%s>: %s", type, cast(long)data.unsigned);
+		if (pointsToMemory) {
+			return format("<%s>: %s", type, data.ptr);
+		} else {
+			return format("<%s>: %s", type, cast(long)data.unsigned);
+		}
 	}
 }
 
@@ -102,10 +108,10 @@ public:
 		return _id;
 	}
 
-	void init(string name, ir.Type type)
+	void init(string name, ir.Type type, size_t size)
 	{
 		StoreEntry entry;
-		init(entry, name, type);
+		init(entry, name, type, size);
 		// maybe check if this name already exists and fail
 		data[name] = entry;
 	}
@@ -130,9 +136,9 @@ public:
 		return data.values;
 	}
 
-	void initReturn(ir.Type type)
+	void initReturn(ir.Type type, size_t size)
 	{
-		init(returnData, "return", type);
+		init(returnData, "return", type, size);
 	}
 
 	void* getReturnPointer()
@@ -141,16 +147,20 @@ public:
 	}
 
 protected:
-	void init(out StoreEntry entry, string name, ir.Type type)
+	void init(out StoreEntry entry, string name, ir.Type type, size_t size)
 	{
 		entry.name = name;
+
 		entry.type = type;
+		entry.size = size;
 
 		entry.data.unsigned = 0;
-
-		// TODO allocate memory if necessary,
-		// store the memory region in data.ptr
 		entry.pointsToMemory = false;
+
+		if (size > entry.data.sizeof) {
+			entry.data.ptr = (new ubyte[size]).ptr;
+			entry.pointsToMemory = true;
+		}
 	}
 
 	void* getPointer(ref StoreEntry entry)

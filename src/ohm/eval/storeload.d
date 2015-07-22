@@ -69,7 +69,7 @@ public:
 		if (!fn.isAutoReturn)
 			return Continue;
 
-		varStore.initReturn(fn.type.ret);
+		varStore.initReturn(fn.type.ret, size(lp, fn.type.ret));
 
 		if (ret.exp is null)
 			return Continue;

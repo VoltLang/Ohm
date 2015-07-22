@@ -3,11 +3,11 @@ module ohm.eval.vardeclinserter;
 
 import std.algorithm : canFind;
 
-import ir = volt.ir.ir;
 import volt.ir.util;
-
+import ir = volt.ir.ir;
 import volt.interfaces;
 import volt.visitor.visitor;
+import volt.semantic.classify : size;
 
 import ohm.eval.controller : OhmController;
 import ohm.eval.languagepass : OhmLanguagePass;
@@ -69,7 +69,7 @@ public:
 	override Status enter(ir.Variable d)
 	{
 		if (mReplFuncLevel != 0) {
-			varStore.init(d.name, d.type);
+			varStore.init(d.name, d.type, size(lp, d.type));
 			mIgnore ~= d.name;
 		}
 
