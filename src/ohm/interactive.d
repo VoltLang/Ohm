@@ -11,7 +11,7 @@ import ohm.settings : Settings;
 import ohm.exceptions : ExitException, ContinueException;
 import ohm.eval.controller : OhmController;
 import ohm.eval.backend : OhmBackend;
-import ohm.eval.parser : OhmParser;
+import ohm.read.parser : OhmParser;
 import ohm.read.reader : OhmReader;
 
 

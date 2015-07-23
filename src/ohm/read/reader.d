@@ -10,7 +10,7 @@ import volt.exceptions : CompilerError;
 import ohm.interfaces : Input, Reader;
 import ohm.exceptions : ExitException, ContinueException;
 import ohm.eval.controller : OhmController;
-import ohm.eval.parser : OhmParser;
+import ohm.read.parser : OhmParser;
 import ohm.read.util : Balance, balancedParens;
 
 

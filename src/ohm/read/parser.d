@@ -1,4 +1,4 @@
-module ohm.eval.parser;
+module ohm.read.parser;
 
 import ir = volt.ir.ir;
 import volt.ir.util;
