@@ -1,4 +1,4 @@
-module ohm.read;
+module ohm.read.reader;
 
 
 import std.string : format;
@@ -11,7 +11,7 @@ import ohm.interfaces : Input, Reader;
 import ohm.exceptions : ExitException, ContinueException;
 import ohm.eval.controller : OhmController;
 import ohm.eval.parser : OhmParser;
-import ohm.util : balancedParens;
+import ohm.read.util : Balance, balancedParens;
 
 
 enum Parens {
@@ -56,12 +56,10 @@ public:
 protected:
 	int needsToReadMore(string soFar)
 	{
-		// TODO improve, e.g.:
-		// "{" is unbalanced even though the brace is inside a string.
-		auto balance = balancedParens(soFar, Parens.Open, Parens.Close);
+		int indentLevel;
+		auto balance = balancedParens(soFar, indentLevel);
 
-		// return the balance level (indentation), if it is balanced (0)
-		// no more input required.
-		return balance > 0 ? balance : -1;
+		// return indentation level if not balanced, -1 otherwise
+		return balance == Balance.BALANCED ? -1 : indentLevel;
 	}
 }

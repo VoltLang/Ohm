@@ -7,12 +7,12 @@ import volt.llvm.interfaces : State;
 import volt.exceptions : CompilerError;
 
 import ohm.interfaces : Interactive, Input, Output, Reader;
+import ohm.settings : Settings;
+import ohm.exceptions : ExitException, ContinueException;
 import ohm.eval.controller : OhmController;
 import ohm.eval.backend : OhmBackend;
 import ohm.eval.parser : OhmParser;
-import ohm.settings : Settings;
-import ohm.read : OhmReader;
-import ohm.exceptions : ExitException, ContinueException;
+import ohm.read.reader : OhmReader;
 
 
 class InteractiveConsole : Interactive {
