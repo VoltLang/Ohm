@@ -22,7 +22,6 @@ void parseTopLevelsOrStatements(TokenStream ts, TokenType end, out ir.TopLevelBl
 {
 	tlb = new ir.TopLevelBlock();
 	tlb.location = ts.peek.location;
-	statements = [];
 
 	ts.pushCommentLevel();
 	while (ts.peek.type != end && ts.peek.type != TokenType.End) {
@@ -36,7 +35,7 @@ void parseTopLevelsOrStatements(TokenStream ts, TokenType end, out ir.TopLevelBl
 }
 
 // this was copied from parseOneTopLevelBlock, only the default case was replaced with parseStatement
-void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, out ir.Statement[] statements, bool inModule)
+void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, ref ir.Statement[] statements, bool inModule)
 {
 	eatComments(ts);
 	scope(exit) eatComments(ts);
