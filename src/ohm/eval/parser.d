@@ -135,7 +135,14 @@ void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, out ir.St
 		match(ts, TokenType.Semicolon);
 		break;
 	default:
-		statements ~= parseStatement(ts);
+		foreach (statement; parseStatement(ts)) {
+			// TODO check if more needs to be stored in the tlb
+			if (statement.nodeType == ir.NodeType.Function) {
+				tlb.nodes ~= cast(ir.Function) statement;
+			} else {
+				statements ~= statement;
+			}
+		}
 		break;
 	}
 }

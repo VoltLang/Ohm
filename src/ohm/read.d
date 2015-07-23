@@ -46,11 +46,10 @@ public:
 
 		parser.parseTopLevelsOrStatements(source, location, tlb, statements);
 
-		if (statements.length == 0 && tlb.nodes.length == 0) {
+		controller.addTopLevel(tlb);
+		if (statements.length == 0) {
 			throw new ContinueException();
 		}
-
-		controller.addTopLevel(tlb);
 		controller.setStatements(statements);
 	}
 
