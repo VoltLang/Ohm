@@ -1,10 +1,8 @@
 module ohm.eval.vardeclinserter;
 
 
-import std.algorithm : canFind;
-
-import volt.ir.util;
 import ir = volt.ir.ir;
+import volt.ir.util;
 import volt.interfaces;
 import volt.visitor.visitor;
 import volt.semantic.classify : size;
@@ -23,7 +21,6 @@ public:
 
 protected:
 	size_t mReplFuncLevel = 0;
-	string[] mIgnore;
 
 public:
 	override void transform(ir.Module m)
@@ -50,7 +47,7 @@ public:
 		if (fn.isAutoReturn && mReplFuncLevel == 1) {
 			ir.Node[] decls;
 			foreach (val; varStore.values()) {
-				if (canFind(mIgnore, val.name))
+				if (varStore.willInitLater(val.name))
 					continue;
 
 				decls ~= buildVariable(fn.location, val.type, ir.Variable.Storage.Function, val.name);
@@ -69,8 +66,7 @@ public:
 	override Status enter(ir.Variable d)
 	{
 		if (mReplFuncLevel != 0) {
-			varStore.init(d.name, d.type, size(lp, d.type));
-			mIgnore ~= d.name;
+			varStore.initLater(d.name);
 		}
 
 		return Continue;

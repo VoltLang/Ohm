@@ -63,6 +63,15 @@ public:
 		return super.leave(fn);
 	}
 
+	override Status enter(ir.Variable var)
+	{
+		if (varStore.willInitLater(var.name)) {
+			varStore.init(var.name, var.type, size(lp, var.type));
+		}
+
+		return Continue;
+	}
+
 	override Status enter(ir.ReturnStatement ret)
 	{
 		auto fn = getParentFunction(current);

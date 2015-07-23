@@ -4,6 +4,7 @@ module ohm.eval.datastore;
 import std.conv : to;
 import std.stdio : stderr;
 import std.string : format;
+import std.algorithm : canFind, countUntil, remove;
 
 import ir = volt.ir.ir;
 import volt.semantic.classify : size;
@@ -93,6 +94,8 @@ public:
 	StoreEntry[string] data;
 	StoreEntry returnData;
 
+	string[] requireInit;
+
 private:
 	size_t _id;
 
@@ -108,12 +111,29 @@ public:
 		return _id;
 	}
 
+	void initLater(string name)
+	{
+		if (!canFind(requireInit, name)) {
+			requireInit ~= name;
+		}
+	}
+
+	bool willInitLater(string name)
+	{
+		return canFind(requireInit, name);
+	}
+
 	void init(string name, ir.Type type, size_t size)
 	{
 		StoreEntry entry;
 		init(entry, name, type, size);
 		// maybe check if this name already exists and fail
 		data[name] = entry;
+
+		auto index = countUntil(requireInit, name);
+		if (index >= 0) {
+			requireInit = remove(requireInit, index);
+		}
 	}
 
 	void* getPointer(string name)
