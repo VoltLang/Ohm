@@ -1,14 +1,6 @@
 module ohm.util;
 
 
-enum Balance
-{
-	BALANCED,
-	UNBALANCED,
-	UNBALANCABLE
-}
-
-
 int balancedParens(in const(char)[] inp, char open, char close)
 {
 	int balance = 0;

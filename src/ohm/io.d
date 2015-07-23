@@ -11,16 +11,10 @@ import core.stdc.time;
 import lib.readline.readline;
 import lib.readline.history;
 
-import ohm.interfaces : Reader, Writer;
+import ohm.interfaces : Input, Output;
 import ohm.settings : Settings;
 import ohm.exceptions : ExitException, ContinueException;
-import ohm.util : balancedParens;
 
-
-enum Parens {
-	Open = ['(', '[', '{'],
-	Close = [')', ']', '}'],
-}
 
 size_t indentNum = 0;
 string indentStr = " ";
@@ -84,7 +78,7 @@ bool getResetHookGotCtrlC()
 }
 
 
-class StdinReadlineReader : Reader
+class StdinReadlineInput : Input
 {
 public:
 	Settings settings;
@@ -111,7 +105,7 @@ public:
 		rl_startup_hook = null;
 	}
 
-	string getInput(string prompt)
+	string getInput(string prompt, int delegate(string) readMore = null)
 	{
 		string input;
 
@@ -120,14 +114,17 @@ public:
 			input = getLine(prompt);
 		} while (strip(input).length == 0);
 
-		scope(exit) resetIndent();
+		if (readMore !is null) {
+			scope(exit) resetIndent();
 
-		prompt = format(format("%%%ds", prompt.length), "...: ");
-		auto balance = balancedParens(input, Parens.Open, Parens.Close);
-		while (balance > 0) {
-			setIndent(balance*4);
-			input ~="\n" ~ getLine(prompt);
-			balance = balancedParens(input, Parens.Open, Parens.Close);
+			prompt = format(format("%%%ds", prompt.length), "...: ");
+
+			// read data as long as readMore returns a negative integer
+			// the returned integer >= resembles the indentation level
+			for (auto indent = readMore(input); indent >= 0; indent = readMore(input)) {
+				setIndent(indent, "    ");
+				input ~= "\n" ~ getLine(prompt);
+			}
 		}
 
 		saveInput(input);
@@ -167,7 +164,7 @@ protected:
 }
 
 
-class StdoutWriter : Writer
+class StdoutOutput : Output
 {
 public:
 	void writeResult(string output, string prompt)

@@ -1,6 +1,9 @@
 module ohm.interfaces;
 
 
+import volt.token.location : Location;
+
+
 
 interface Interactive {
 public:
@@ -8,13 +11,13 @@ public:
 }
 
 
-interface Reader
+interface Input
 {
 public:
-	string getInput(string prompt);
+	string getInput(string prompt, int delegate(string) readMore = null);
 }
 
-interface Writer
+interface Output
 {
 public:
 	void writeResult(string output, string prompt);
@@ -23,3 +26,8 @@ public:
 }
 
 
+interface Reader
+{
+public:
+	void processInput(Location location, string prompt);
+}

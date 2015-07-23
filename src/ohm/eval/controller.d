@@ -118,13 +118,25 @@ public:
 
 	void addTopLevel(ir.TopLevelBlock tlb)
 	{
+		if (tlb.nodes.length == 0)
+			return;
+
 		mModule.children.nodes ~= tlb.nodes;
 	}
 
-	void addStatement(ir.Node[] nodes)
+	void setStatements(ir.Statement[] statements)
 	{
-		auto lastNode = nodes[$-1];
-		auto otherNodes = nodes[0..$-1];
+		if (statements.length == 0) {
+			mREPLFunc._body.statements = [];
+			return;
+		}
+
+		auto lastNode = statements[$-1];
+		ir.Node[] otherNodes;
+		otherNodes.length = statements.length-1;
+		foreach (size_t i, statement; statements[0..$-1]) {
+			otherNodes[i] = statement;
+		}
 
 		mREPLFunc._body.statements = otherNodes;
 
@@ -216,6 +228,7 @@ public:
 
 		// reset leftover state
 		languagePass.reset();
+		varStore.returnData = StoreEntry();
 
 		// After we have loaded all of the modules
 		// setup the pointers, this allows for suppling
