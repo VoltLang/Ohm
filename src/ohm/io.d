@@ -1,7 +1,7 @@
 module ohm.io;
 
 
-import std.stdio : writeln, stdout;
+import std.stdio : File, stdout, writeln;
 import std.string : format, strip, toStringz;
 import std.array : replicate;
 
@@ -167,15 +167,33 @@ protected:
 class StdoutOutput : Output
 {
 public:
+	File file;
+
+public:
+	this()
+	{
+		this.file = stdout;
+	}
+
+	this(File file)
+	{
+		this.file = file;
+	}
+
 	void writeResult(string output, string prompt)
 	{
 		if (output.length > 0) {
-			writeln(prompt, output);
+			file.writeln(prompt, output);
 		}
 	}
 
-	void writeOther(string output)
+	void write(string output)
 	{
-		writeln(output);
+		file.write(output);
+	}
+
+	void writeln(string output)
+	{
+		file.writeln(output);
 	}
 }
