@@ -60,24 +60,6 @@ public:
 
 	Data data;
 	bool pointsToMemory;
-
-public:
-	string toString()
-	{
-		if (type is null)
-			return null;
-
-		auto asPrim = cast(ir.PrimitiveType) type;
-		if (asPrim !is null && asPrim.type == ir.PrimitiveType.Kind.Void)
-			return null;
-
-		// TODO ir.Type + data -> string
-		if (pointsToMemory) {
-			return format("<%s>: %s", type, data.ptr);
-		} else {
-			return format("<%s>: %s", type, cast(long)data.unsigned);
-		}
-	}
 }
 
 

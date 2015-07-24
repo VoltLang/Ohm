@@ -23,8 +23,6 @@ public:
 interface Output
 {
 public:
-	void writeResult(string output, string prompt);
-
 	void write(string output);
 	void writeln(string output);
 }
@@ -39,7 +37,9 @@ public:
 interface Printer
 {
 public:
-	void printType(ir.Type type);
+	size_t print(ir.Type type, string prompt);
+	size_t print(ir.Type type);
 
-	void printData(ref StoreEntry entry);
+	size_t print(ref StoreEntry entry, string prompt);
+	size_t print(ref StoreEntry entry);
 }

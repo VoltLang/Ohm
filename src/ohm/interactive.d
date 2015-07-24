@@ -67,7 +67,7 @@ public:
 		auto state = controller.compile();
 		auto result = controller.execute(state);
 
-		printer.printData(result);
+		printer.print(result, outputPrompt);
 	}
 
 protected:

@@ -61,6 +61,8 @@ protected:
 	int mIndent;
 	string mIndentText;
 
+	size_t mWritten;
+
 public:
 	this(LanguagePass lp, string indentText = "\t", void delegate(string) sink = null)
 	{
@@ -70,7 +72,7 @@ public:
 		mSink = sink;
 	}
 
-	void format(ref StoreEntry entry, void delegate(string) sink = null)
+	size_t format(ref StoreEntry entry, void delegate(string) sink = null)
 	{
 		initSink(sink);
 		scope(exit) restoreSink();
@@ -78,6 +80,8 @@ public:
 		mCurrent = entry.pointsToMemory ? entry.data.ptr : &entry.data;
 
 		accept(entry.type, this);
+
+		return mWritten;
 	}
 
 	override Status enter(ir.Class c)
@@ -262,11 +266,18 @@ protected:
 	void initSink(void delegate(string) sink)
 	{
 		mOldSink = mSink;
-		mSink = sink is null ? mSink : sink;
+		sink = sink is null ? mSink : sink;
 
-		if (mSink is null) {
+		if (sink is null) {
 			throw new FormatException("A sink is required.");
 		}
+
+		mWritten = 0;
+		void wrappedSink(string s) {
+			mWritten += s.length;
+			sink(s);
+		}
+		mSink = &wrappedSink;
 	}
 
 	void restoreSink()

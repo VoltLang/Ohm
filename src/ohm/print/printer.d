@@ -18,6 +18,9 @@ public:
 	TypeFormatter typeFormatter;
 	DataFormatter dataFormatter;
 
+protected:
+	string mPrompt = null;
+
 public:
 	this(Output output, OhmController controller)
 	{
@@ -27,19 +30,46 @@ public:
 		this.dataFormatter = new DataFormatter(controller.languagePass, "\t", &sink);
 	}
 
-	void printType(ir.Type type)
+	size_t print(ir.Type type, string prompt)
 	{
-		typeFormatter.format(type);
+		mPrompt = prompt;
+		scope(exit) mPrompt = null;
+		auto r = print(type);
+		if (r) {
+			output.writeln("");
+		}
+		return r;
 	}
 
-	void printData(ref StoreEntry entry)
+	size_t print(ir.Type type)
 	{
-		dataFormatter.format(entry);
+		return typeFormatter.format(type);
+	}
+
+	size_t print(ref StoreEntry entry, string prompt)
+	{
+		mPrompt = prompt;
+		scope(exit) mPrompt = null;
+		auto r = print(entry);
+		if (r) {
+			output.writeln("");
+		}
+		return r;
+	}
+
+	size_t print(ref StoreEntry entry)
+	{
+		return dataFormatter.format(entry);
 	}
 
 protected:
 	void sink(string s)
 	{
+		if (mPrompt.length > 0) {
+			output.write(mPrompt);
+			mPrompt = null;
+		}
+
 		output.write(s);
 	}
 }

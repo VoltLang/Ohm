@@ -15,13 +15,15 @@ class TypeFormatter : PrettyPrinter
 protected:
 	void delegate(string) mOldSink = null;
 
+	size_t mWritten;
+
 public:
 	this(string indentText = "\t", void delegate(string) sink = null)
 	{
 		super(indentText, sink);
 	}
 
-	void format(ir.Type type, void delegate(string) sink = null)
+	size_t format(ir.Type type, void delegate(string) sink = null)
 	{
 		if (type is null) {
 			throw new FormatException("type is null.");
@@ -31,6 +33,8 @@ public:
 		scope(exit) restoreSink();
 
 		accept(type, this);
+
+		return mWritten;
 	}
 
 protected:
@@ -38,11 +42,18 @@ protected:
 	{
 		mStream = dout;
 		mOldSink = mSink;
-		mSink = sink is null ? mSink : sink;
+		sink = sink is null ? mSink : sink;
 
-		if (mSink is null) {
+		if (sink is null) {
 			throw new FormatException("A sink is required.");
 		}
+
+		mWritten = 0;
+		void wrappedSink(string s) {
+			mWritten += s.length;
+			sink(s);
+		}
+		mSink = &wrappedSink;
 	}
 
 	void restoreSink()
