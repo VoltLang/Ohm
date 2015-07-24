@@ -43,7 +43,9 @@ public:
 
 	void run()
 	{
-		for (;;) {
+		for (size_t line = location.line;;line++) {
+			location.line = line;
+
 			try {
 				repl();
 			} catch (ContinueException e) {
@@ -55,8 +57,6 @@ public:
 					settings.showStackTraces ? e.toString() : e.msg
 				);
 			}
-
-			location.line++;
 		}
 	}
 
