@@ -12,13 +12,14 @@ import volt.parser.toplevel;
 import volt.parser.statements;
 import volt.parser.expression;
 import volt.parser.parser : VoltaParser = Parser;
+import volt.parser.stream : ParserStream;
 import volt.token.location : Location;
 import volt.token.lexer : lex;
 import volt.token.source : Source;
-import volt.token.stream : TokenType, TokenStream;
+import volt.token.stream : TokenType;
 
 
-void parseTopLevelsOrStatements(TokenStream ts, TokenType end, out ir.TopLevelBlock tlb, out ir.Statement[] statements, bool inModule = false)
+void parseTopLevelsOrStatements(ParserStream ts, TokenType end, out ir.TopLevelBlock tlb, out ir.Node[] statements)
 {
 	tlb = new ir.TopLevelBlock();
 	tlb.location = ts.peek.location;
@@ -29,20 +30,20 @@ void parseTopLevelsOrStatements(TokenStream ts, TokenType end, out ir.TopLevelBl
 			continue;
 		}
 
-		parseOneTopLevelOrStatement(ts, tlb, statements, inModule);
+		parseOneTopLevelOrStatement(ts, tlb, statements);
 	}
 	ts.popCommentLevel();
 }
 
 // this was copied from parseOneTopLevelBlock, only the default case was replaced with parseStatement
-void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, ref ir.Statement[] statements, bool inModule)
+void parseOneTopLevelOrStatement(ParserStream ts, ir.TopLevelBlock tlb, ref ir.Node[] statements)
 {
 	eatComments(ts);
 	scope(exit) eatComments(ts);
 
 	switch (ts.peek.type) {
 	case TokenType.Import:
-		tlb.nodes ~= [parseImport(ts, inModule)];
+		tlb.nodes ~= [parseImport(ts)];
 		break;
 	case TokenType.Unittest:
 		tlb.nodes ~= [parseUnittest(ts)];
@@ -109,11 +110,11 @@ void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, ref ir.St
 	case TokenType.Inout:
 	case TokenType.Nothrow:
 	case TokenType.Pure:
-		tlb.nodes ~= [parseAttribute(ts, inModule)];
+		tlb.nodes ~= [parseAttribute(ts)];
 		break;
 	case TokenType.Version:
 	case TokenType.Debug:
-		tlb.nodes ~= [parseConditionTopLevel(ts, inModule)];
+		tlb.nodes ~= [parseConditionTopLevel(ts)];
 		break;
 	case TokenType.Static:
 		auto next = ts.lookahead(1).type;
@@ -126,7 +127,7 @@ void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, ref ir.St
 		} else if (next == TokenType.If) {
 			goto case TokenType.Version;
 		} else {
-			tlb.nodes ~= [parseAttribute(ts, inModule)];
+			tlb.nodes ~= [parseAttribute(ts)];
 		}
 		break;
 	case TokenType.Semicolon:
@@ -150,33 +151,27 @@ void parseOneTopLevelOrStatement(TokenStream ts, ir.TopLevelBlock tlb, ref ir.St
 class OhmParser : VoltaParser
 {
 public:
-	ir.TopLevelBlock parseToplevel(string source, Location loc, bool inModule = false)
+	ir.TopLevelBlock parseToplevel(string source, Location loc)
 	{
 		auto src = new Source(source, loc);
-		auto ts = lex(src);
+		auto ps = new ParserStream(lex(src));
 		if (dumpLex)
-			doDumpLex(ts);
+			doDumpLex(ps);
 
-		match(ts, TokenType.Begin);
+		match(ps, TokenType.Begin);
 
-		return parseTopLevelBlock(ts, TokenType.End, inModule);
+		return parseTopLevelBlock(ps, TokenType.End);
 	}
 
-	void parseTopLevelsOrStatements(string source, Location loc, out ir.TopLevelBlock tlb, out ir.Statement[] statements, bool inModule = false)
+	void parseTopLevelsOrStatements(string source, Location loc, out ir.TopLevelBlock tlb, out ir.Node[] statements)
 	{
 		auto src = new Source(source, loc);
-		auto ts = lex(src);
+		auto ps = new ParserStream(lex(src));
 		if (dumpLex)
-			doDumpLex(ts);
+			doDumpLex(ps);
 
-		match(ts, TokenType.Begin);
+		match(ps, TokenType.Begin);
 
-		.parseTopLevelsOrStatements(ts, TokenType.End, tlb, statements, inModule);
+		.parseTopLevelsOrStatements(ps, TokenType.End, tlb, statements);
 	}
-
-	override ir.Node[] parseStatements(string source, Location loc)
-	{
-		return super.parseStatements(source, loc);
-	}
-
 }

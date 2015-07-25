@@ -26,7 +26,7 @@ LDFLAGS		+= $(patsubst -%, $(LINKERFLAG)-%, $(LLVM_LDFLAGS)) $(LINKERFLAG)-ldl $
 
 DSOURCES	= $(call getSource,src/ohm,d) src/main.d \
 		  $(call getSource,src/lib/readline,d) $(call getSource,src/lib/llvm,d) \
-		  $(call getSource,src/Volta/src/volt,d) $(call getSource,src/Volta/src/lib,d)
+		  $(call getSource,src/Volta/src/volt,d) $(call getSource,src/Volta/src/watt,d) $(call getSource,src/Volta/src/lib,d)
 DOBJECTS	= $(patsubst %.d,$(DBUILD_PATH)/%$(EXT), $(DSOURCES))
 
 CSOURCES	= $(call getSource,src/lib/c,cpp)

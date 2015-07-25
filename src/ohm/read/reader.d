@@ -42,7 +42,7 @@ public:
 		string source = input.getInput(prompt, &needsToReadMore) ~ ";";
 
 		ir.TopLevelBlock tlb;
-		ir.Statement[] statements;
+		ir.Node[] statements;
 
 		parser.parseTopLevelsOrStatements(source, location, tlb, statements);
 

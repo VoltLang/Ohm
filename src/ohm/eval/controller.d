@@ -124,7 +124,7 @@ public:
 		mModule.children.nodes ~= tlb.nodes;
 	}
 
-	void setStatements(ir.Statement[] statements)
+	void setStatements(ir.Node[] statements)
 	{
 		if (statements.length == 0) {
 			mREPLFunc._body.statements = [];
