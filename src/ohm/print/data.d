@@ -3,8 +3,9 @@ module ohm.print.data;
 
 import std.conv : to;
 import std.string : format;
+import core.stdc.ctype : isprint;
 
-import volt.semantic.classify : size, alignment;
+import volt.semantic.classify : size, alignment, isString;
 import volt.interfaces : LanguagePass;
 import volt.visitor.visitor;
 
@@ -60,6 +61,7 @@ protected:
 
 	int mIndent;
 	string mIndentText;
+	bool mInString;
 
 	size_t mWritten;
 
@@ -149,7 +151,7 @@ public:
 
 	override Status enter(ir.PointerType pointer)
 	{
-		wf(to!string(*cast(void**)mCurrent));
+		wf(*cast(void**)mCurrent);
 		mCurrent += size(lp, pointer);
 		return ContinueParent;
 	}
@@ -162,17 +164,19 @@ public:
 
 		auto oldCurrent = mCurrent;
 		mCurrent = arr.ptr;
+		mInString = isString(array);
 
-		wf("[");
+		wf(mInString ? "\"" : "[");
 		for (size_t i = 0; i < arr.length; i++) {
 			accept(array.base, this);
 
-			if (i+1 < arr.length) {
+			if (i+1 < arr.length && !mInString) {
 				wf(", ");
 			}
 		}
-		wf("]");
+		wf(mInString ? "\"" : "]");
 
+		mInString = false;
 		mCurrent = oldCurrent + size(lp, array);
 
 		return ContinueParent;
@@ -210,14 +214,14 @@ public:
 
 	override Status enter(ir.FunctionType fn)
 	{
-		wf(to!string(*cast(void**)mCurrent));
+		wf(*cast(void**)mCurrent);
 		mCurrent += size(lp, fn);
 		return ContinueParent;
 	}
 
 	override Status enter(ir.DelegateType fn)
 	{
-		wf(to!string(*cast(void**)mCurrent));
+		wf(*cast(void**)mCurrent);
 		mCurrent += size(lp, fn);
 		return ContinueParent;
 	}
@@ -226,21 +230,21 @@ public:
 	{
 		switch (it.type) with (ir.PrimitiveType.Kind) {
 		case Void: break;
-		case Bool: wf(to!string(*cast(bool*) mCurrent)); break;
-		case Char: wf(to!string(*cast(char*) mCurrent)); break;
-		case Wchar: wf(to!string(*cast(wchar*) mCurrent)); break;
-		case Dchar: wf(to!string(*cast(dchar*) mCurrent)); break;
-		case Byte: wf(to!string(*cast(byte*) mCurrent)); break;
-		case Ubyte: wf(to!string(*cast(ubyte*) mCurrent)); break;
-		case Short: wf(to!string(*cast(short*) mCurrent)); break;
-		case Ushort: wf(to!string(*cast(ushort*) mCurrent)); break;
-		case Int: wf(to!string(*cast(int*) mCurrent)); break;
-		case Uint: wf(to!string(*cast(uint*) mCurrent)); break;
-		case Long: wf(to!string(*cast(long*) mCurrent)); break;
-		case Ulong: wf(to!string(*cast(ulong*) mCurrent)); break;
-		case Float: wf(to!string(*cast(float*) mCurrent)); break;
-		case Double: wf(to!string(*cast(double*) mCurrent)); break;
-		case Real: wf(to!string(*cast(real*) mCurrent)); break;
+		case Bool: wf(*cast(bool*)mCurrent); break;
+		case Char: wf(*cast(char*)mCurrent); break;
+		case Wchar: wf(*cast(wchar*)mCurrent); break;
+		case Dchar: wf(*cast(dchar*)mCurrent); break;
+		case Byte: wf(*cast(byte*)mCurrent); break;
+		case Ubyte: wf(*cast(ubyte*)mCurrent); break;
+		case Short: wf(*cast(short*)mCurrent); break;
+		case Ushort: wf(*cast(ushort*)mCurrent); break;
+		case Int: wf(*cast(int*)mCurrent); break;
+		case Uint: wf(*cast(uint*)mCurrent); break;
+		case Long: wf(*cast(long*)mCurrent); break;
+		case Ulong: wf(*cast(ulong*)mCurrent); break;
+		case Float: wf(*cast(float*)mCurrent); break;
+		case Double: wf(*cast(double*)mCurrent); break;
+		case Real: wf(*cast(real*)mCurrent); break;
 		default: assert(false);
 		}
 
@@ -278,6 +282,8 @@ protected:
 			sink(s);
 		}
 		mSink = &wrappedSink;
+
+		mInString = false;
 	}
 
 	void restoreSink()
@@ -363,21 +369,123 @@ protected:
 		}
 	}
 
+	void wf(void* ptr)
+	{
+		string s = ptr is null ? "null" : .format("0x%x", ptr);
+		mSink(s);
+	}
+
+	void wf(bool b)
+	{
+		string s = .format("%s", b);
+		mSink(s);
+	}
+
+	void wf(char c)
+	{
+		string s = escapeChar(c, `\x%02x`);
+		mSink(s);
+	}
+
+	void wf(wchar c)
+	{
+		string s = escapeChar(c, `\u%04x`);
+		mSink(s);
+	}
+
+	void wf(dchar c)
+	{
+		string s = escapeChar(c, `\U%08x`);
+		mSink(s);
+	}
+
+	string escapeChar(dchar c, string fmt)
+	{
+		string s;
+
+		switch(c) {
+		case '\'': s = mInString ? `'` : `\'`; break;
+		case '"': s = mInString ? `\"` : `"`; break;
+		case '\\': s = `\\`; break;
+		case '\0': s = `\0`; break;
+		case '\a': s = `\a`; break;
+		case '\b': s = `\b`; break;
+		case '\f': s = `\f`; break;
+		case '\n': s = `\n`; break;
+		case '\r': s = `\r`; break;
+		case '\t': s = `\t`; break;
+		case '\v': s = `\v`; break;
+		default:
+			s = isprint(c) ? .format("%c", c) : .format(fmt, c);
+			break;
+		}
+
+		return mInString ? s : .format("'%s'", s);
+	}
+
+	void wf(byte b)
+	{
+		string s = .format("%d", b);
+		mSink(s);
+	}
+
+	void wf(ubyte b)
+	{
+		string s = .format("%d", b);
+		mSink(s);
+	}
+
+	void wf(short sh)
+	{
+		string s = .format("%d", sh);
+		mSink(s);
+	}
+
+	void wf(ushort sh)
+	{
+		string s = .format("%d", sh);
+		mSink(s);
+	}
+
 	void wf(int i)
 	{
-		string s = .format("%s", i);
+		string s = .format("%d", i);
+		mSink(s);
+	}
+
+	void wf(uint i)
+	{
+		string s = .format("%d", i);
 		mSink(s);
 	}
 
 	void wf(long l)
 	{
-		string s = .format("%s", l);
+		string s = .format("%d", l);
 		mSink(s);
 	}
 
-	void wf(size_t i)
+	void wf(ulong l)
 	{
-		string s = .format("%s", i);
+		string s = .format("%d", l);
+		mSink(s);
+	}
+
+	void wf(float f)
+	{
+		string s = .format("%.13gf", f);
+		mSink(s);
+	}
+
+	void wf(double d)
+	{
+		string s = .format("%.16g", d);
+		mSink(s);
+	}
+
+	void wf(real r)
+	{
+		string s = .format("%.21g", r);
 		mSink(s);
 	}
 
