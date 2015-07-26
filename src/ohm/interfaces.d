@@ -45,10 +45,16 @@ public:
 }
 
 
+alias CommandCallback = bool delegate(string command, ref Location location, ref string source);
+
 interface Reader
 {
 public:
-	void processInput(Location location, string prompt);
+	void read(Location location, string prompt, bool processCommands = true);
+	void process(Location location, string source, bool processCommands = true);
+
+	void setCommand(string command, CommandCallback callback);
+	CommandCallback getCommand(string command);
 }
 
 interface Printer : Output

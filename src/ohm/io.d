@@ -180,13 +180,6 @@ public:
 		this.file = file;
 	}
 
-	void writeResult(string output, string prompt)
-	{
-		if (output.length > 0) {
-			file.writeln(prompt, output);
-		}
-	}
-
 	void write(string output)
 	{
 		file.write(output);

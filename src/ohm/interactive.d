@@ -2,6 +2,7 @@ module ohm.interactive;
 
 import std.string : format;
 
+import ir = volt.ir.ir;
 import volt.token.location : Location;
 import volt.llvm.interfaces : State;
 import volt.exceptions : CompilerError;
@@ -46,6 +47,8 @@ public:
 			new OhmReader(input, controller),
 			new OhmPrinter(output, controller)
 		);
+
+		reader.setCommand(`\t`, &printType);
 	}
 
 	void run()
@@ -69,7 +72,7 @@ public:
 
 	void repl()
 	{
-		reader.processInput(location, inputPrompt);
+		reader.read(location, inputPrompt);
 
 		auto state = controller.compile();
 		auto result = controller.execute(state);
@@ -86,5 +89,31 @@ protected:
 	@property string outputPrompt()
 	{
 		return format("Out[%d]: ", location.line + 1);
+	}
+
+	// Commands
+	bool printType(string command, ref Location location, ref string source)
+	{
+		ir.Type type = null;
+		if (source.length == 0) {
+			type = controller.varStore.returnData.type;
+		} else if(controller.varStore.has(source)) {
+			type = controller.varStore.get(source).type;
+		} else {
+			// only compile if really required
+			reader.process(location, source, false);
+			auto state = controller.compile();
+			auto result = controller.execute(state);
+			type = result.type;
+		}
+
+		if (type is null) {
+			printer.writeln("void");
+		} else {
+			printer.print(type);
+			printer.writeln("");
+		}
+
+		return false;
 	}
 }
