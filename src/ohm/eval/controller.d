@@ -14,6 +14,7 @@ import volt.util.path;
 import volt.interfaces : Controller, Frontend, Backend, LanguagePass, Pass, TargetType;
 import volt.semantic.languagepass : VoltLanguagePass;
 import volt.semantic.extyper : ExTyper;
+import volt.semantic.classify : isAssign;
 import volt.semantic.util;
 import volt.token.location : Location;
 import volt.parser.toplevel : createImport;
@@ -142,7 +143,9 @@ public:
 
 		ir.Exp exp = null;
 		if (auto expStmt = cast(ir.ExpStatement)lastNode) {
-			exp = expStmt.exp;
+			if (!settings.ignoreAssignExpValue || !isAssign(expStmt.exp)) {
+				exp = expStmt.exp;
+			}
 		} else {
 			mREPLFunc._body.statements ~= lastNode;
 		}

@@ -113,11 +113,14 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 			return printUsage();
 		case "-license", "--license":
 			return printLicense();
-		case "-D":
-			argHandler = &versionIdentifier;
-			continue;
 		case "-I":
 			argHandler = &includePath;
+			continue;
+		case "--stdlib-I":
+			argHandler = &stdIncludePath;
+			continue;
+		case "--stdlib-file":
+			argHandler = &stdFile;
 			continue;
 		case "-L":
 			argHandler = &libraryPath;
@@ -125,29 +128,29 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 		case "-l":
 			argHandler = &libraryFile;
 			continue;
+		case "--history":
+			argHandler = &historyFile;
+			continue;
+		case "--ignore-assign":
+			settings.ignoreAssignExpValue = true;
+			continue;
+		case "--stacktrace":
+			settings.showStackTraces = true;
+			continue;
+		case "-D":
+			argHandler = &versionIdentifier;
+			continue;
 		case "-w":
 			settings.warningsEnabled = true;
 			continue;
 		case "-d":
 			settings.debugEnabled = true;
 			continue;
-		case "--internal-dbg":
-			settings.internalDebug = true;
-			continue;
-		case "--stdlib-file":
-			argHandler = &stdFile;
-			continue;
-		case "--stdlib-I":
-			argHandler = &stdIncludePath;
-			continue;
 		case "--simple-trace":
 			settings.simpleTrace = true;
 			continue;
-		case "--history":
-			argHandler = &historyFile;
-			continue;
-		case "--stacktrace":
-			settings.showStackTraces = true;
+		case "--internal-dbg":
+			settings.internalDebug = true;
 			continue;
 		default:
 		}
@@ -222,21 +225,34 @@ void setDefault(Settings settings)
 bool printUsage()
 {
 	writefln("usage: ohm [options]");
+	// basic options
 	writefln("\t-h,--help        Print this message and quit.");
 	writefln("\t--license        Print license information and quit.");
+	writeln();
+	// include options
 	writefln("\t-I path          Add a include path.");
+	writefln("\t--stdlib-I       Apply this include before any other -I.");
+	writefln("\t--stdlib-file    Apply this file first but only when linking");
+	writefln("\t                 (ignored if --no-stdlib was given).");
 	writefln("\t-L path          Add a library path.");
 	writefln("\t-l path          Add a library.");
+	writeln();
+	// ohm specific options
+	writefln("\t--history        Path to Ohm history file.");
+	writefln("\t--ignore-assign  Don't print the value of an assign expression.");
+	writefln("\t--stacktrace     Show stacktraces instead of small error messages.");
+	writefln("\t                 Only useful for debugging Ohm.");
+	writeln();
+	// other options
 	writefln("\t-D ident         Define a new version flag");
 	writefln("\t-w               Enable warnings.");
 	writefln("\t-d               Compile in debug mode.");
-	writefln("\t--simple-trace   Print the name of functions to stdout as they're run.");
 	writeln();
+	// volt debug options
+	writefln("\t--simple-trace   Print the name of functions to stdout as they're run.");
 	writefln("\t--internal-dbg   Enables internal debug printing.");
 	writeln();
-	writefln("\t--stdlib-I       Apply this include before any other -I");
-	writefln("\t--stdlib-file    Apply this file first but only when linking");
-	writefln("\t                 (ignored if --no-stdlib was given)");
+
 	return false;
 }
 

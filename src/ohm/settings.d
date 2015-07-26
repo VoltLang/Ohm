@@ -11,7 +11,13 @@ import volt.interfaces : VoltSettings = Settings;
 class Settings : VoltSettings
 {
 public:
-	string historyFile = buildNormalizedPath("~", ".ohm_history"); ///< The --history argument.
+	/// Path to the ohm history file.
+	string historyFile = buildNormalizedPath("~", ".ohm_history");
+
+	/// Don't print the value of an assign expression.
+	bool ignoreAssignExpValue = false;
+
+	/// Show stacktraces instead of small error messages. Only useful for debugging Ohm.
 	bool showStackTraces = false;
 
 	this(string execDir)
