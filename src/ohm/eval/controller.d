@@ -1,8 +1,8 @@
 module ohm.eval.controller;
 
-import std.algorithm : remove, endsWith;
-import std.path : dirSeparator;
-import std.file : remove, exists;
+import std.algorithm : endsWith;
+import std.path : buildNormalizedPath;
+import std.file : exists;
 import std.process : wait, spawnShell;
 import std.stdio : write, writeln, writefln, writef;
 import core.stdc.stdint : int64_t;
@@ -23,7 +23,8 @@ import volt.visitor.prettyprinter : PrettyPrinter;
 import volt.visitor.debugprinter : DebugPrinter, DebugMarker;
 import volt.llvm.interfaces : State;
 import volt.llvm.backend : loadModule;
-import volt.errors;
+import volt.errors : makeMultipleValidModules, makeAlreadyLoaded;
+import volt.exceptions : CompilerError;
 
 import lib.llvm.executionengine;
 import lib.llvm.analysis;
@@ -57,6 +58,8 @@ protected:
 	ir.Module[string] mModulesByName;
 	ir.Module[string] mModulesByFile;
 
+	LLVMModuleRef[string] mLLVMModules;
+
 protected:
 	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
 	{
@@ -71,10 +74,8 @@ protected:
 
 		// LLVM setup
 		LLVMLinkInMCJIT();
-
-		foreach (lib; settings.libraryFiles) {
-			LLVMLoadLibraryPermanently(toStringz(lib));
-		}
+		this.loadModule(settings.stdFiles);
+		this.loadLibrary(settings.libraryFiles);
 
 		// AST setup
 		this.mModule = createSimpleModule(["ohm"]);
@@ -267,8 +268,7 @@ public:
 		LLVMExecutionEngineRef ee = null;
 		assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error) == 0, error);
 
-		foreach (path; settings.stdFiles) {
-			auto mod = loadModule(LLVMContextCreate(), path);
+		foreach (mod; mLLVMModules.values) {
 			LLVMAddModule(ee, mod);
 		}
 
@@ -282,6 +282,39 @@ public:
 		LLVMDisposeGenericValue(LLVMRunFunction(ee, func, 0, null));
 
 		return varStore.returnData;
+	}
+
+	void loadModule(string[] paths...)
+	{
+		foreach (path; paths) {
+			path = buildNormalizedPath(path);
+			mLLVMModules[path] = .loadModule(LLVMContextCreate(), path);
+		}
+	}
+
+	void loadLibrary(string[] libs...)
+	{
+		auto paths = "." ~ settings.libraryPaths;
+		foreach (lib; libs) {
+			bool success = false;
+			for (size_t i = 0; i < paths.length && !success; i++) {
+				auto libPath = buildNormalizedPath(paths[i], lib);
+				success = LLVMLoadLibraryPermanently(toStringz(libPath)) == 0;
+				if (!success) {
+					try {
+						loadModule(libPath);
+					} catch (CompilerError e) {
+						continue;
+					}
+
+					success = true;
+				}
+			}
+
+			if (!success) {
+				throw new CompilerError(format("Unable to load library '%s'.", lib));
+			}
+		}
 	}
 
 protected:

@@ -9,6 +9,7 @@ version (Windows) {
 }
 
 import volt.interfaces : Platform, Arch;
+import volt.errors : CompilerError;
 import volt.license;
 import volt.controller;
 import volt.util.path;
@@ -46,7 +47,13 @@ int main(string[] args)
 	Input input = new StdinReadlineInput(settings);
 	Output output = new StdoutOutput();
 
-	Interactive interactive = new InteractiveConsole(settings, input, output);
+	Interactive interactive;
+	try {
+		interactive = new InteractiveConsole(settings, input, output);
+	} catch (CompilerError e) {
+		writeln(e.msg);
+		return 1;
+	}
 	interactive.run();
 
 	return 0;
