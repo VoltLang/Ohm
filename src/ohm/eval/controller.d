@@ -32,10 +32,11 @@ import lib.llvm.core;
 import lib.llvm.support;
 
 import ohm.settings : Settings;
+import ohm.interfaces : VariableData;
 import ohm.read.parser : OhmParser;
 import ohm.eval.backend : OhmBackend;
 import ohm.eval.languagepass : OhmLanguagePass;
-import ohm.eval.datastore : VariableStore, StoreEntry;
+import ohm.eval.datastore : VariableStore;
 import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
 
 
@@ -232,7 +233,7 @@ public:
 
 		// reset leftover state
 		languagePass.reset();
-		varStore.returnData = StoreEntry();
+		varStore.returnData = VariableData();
 
 		// After we have loaded all of the modules
 		// setup the pointers, this allows for suppling
@@ -260,7 +261,7 @@ public:
 		return backend.getCompiledModuleState(copiedMod);
 	}
 
-	StoreEntry execute(State state)
+	VariableData execute(State state)
 	{
 		scope(exit) state.close();
 

@@ -4,7 +4,7 @@ module ohm.eval.printer;
 import ir = volt.ir.ir;
 
 import ohm.interfaces : Output, Printer;
-import ohm.eval.datastore : StoreEntry;
+import ohm.eval.datastore : VariableData;
 import ohm.eval.controller : OhmController;
 import ohm.print.type : TypeFormatter;
 import ohm.print.data : DataFormatter;
@@ -30,6 +30,16 @@ public:
 		this.dataFormatter = new DataFormatter(controller.languagePass, "\t", &sink);
 	}
 
+	void write(string output)
+	{
+		this.output.write(output);
+	}
+
+	void writeln(string output)
+	{
+		this.output.writeln(output);
+	}
+
 	size_t print(ir.Type type, string prompt)
 	{
 		mPrompt = prompt;
@@ -46,7 +56,7 @@ public:
 		return typeFormatter.format(type);
 	}
 
-	size_t print(ref StoreEntry entry, string prompt)
+	size_t print(VariableData entry, string prompt)
 	{
 		mPrompt = prompt;
 		scope(exit) mPrompt = null;
@@ -57,7 +67,7 @@ public:
 		return r;
 	}
 
-	size_t print(ref StoreEntry entry)
+	size_t print(VariableData entry)
 	{
 		return dataFormatter.format(entry);
 	}

@@ -4,8 +4,25 @@ module ohm.interfaces;
 import ir = volt.ir.ir;
 import volt.token.location : Location;
 
-import ohm.eval.datastore : StoreEntry;
 
+struct VariableData
+{
+public:
+	string name;
+
+	ir.Type type;
+	size_t size;
+
+	union Data {
+		void* ptr;
+		ulong unsigned;
+		real floating;
+		void[] array;
+	}
+
+	Data data;
+	bool pointsToMemory;
+}
 
 
 interface Interactive {
@@ -34,12 +51,12 @@ public:
 	void processInput(Location location, string prompt);
 }
 
-interface Printer
+interface Printer : Output
 {
 public:
 	size_t print(ir.Type type, string prompt);
 	size_t print(ir.Type type);
 
-	size_t print(ref StoreEntry entry, string prompt);
-	size_t print(ref StoreEntry entry);
+	size_t print(VariableData entry, string prompt);
+	size_t print(VariableData entry);
 }

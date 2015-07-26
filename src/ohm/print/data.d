@@ -9,7 +9,7 @@ import volt.semantic.classify : size, alignment, isString;
 import volt.interfaces : LanguagePass;
 import volt.visitor.visitor;
 
-import ohm.eval.datastore : StoreEntry;
+import ohm.interfaces : VariableData;
 import ohm.exceptions : FormatException;
 
 
@@ -53,7 +53,7 @@ public:
 	LanguagePass lp;
 
 protected:
-	StoreEntry mEntry;
+	VariableData mEntry;
 	void* mCurrent;
 
 	void delegate(string) mSink;
@@ -74,7 +74,7 @@ public:
 		mSink = sink;
 	}
 
-	size_t format(ref StoreEntry entry, void delegate(string) sink = null)
+	size_t format(VariableData entry, void delegate(string) sink = null)
 	{
 		initSink(sink);
 		scope(exit) restoreSink();

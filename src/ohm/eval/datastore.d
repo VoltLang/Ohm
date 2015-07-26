@@ -9,6 +9,8 @@ import std.algorithm : canFind, countUntil, remove;
 import ir = volt.ir.ir;
 import volt.semantic.classify : size;
 
+import ohm.interfaces : VariableData;
+
 import lib.llvm.c.Support : LLVMAddSymbol;
 
 
@@ -43,26 +45,6 @@ static this()
 }
 
 
-struct StoreEntry
-{
-public:
-	string name;
-
-	ir.Type type;
-	size_t size;
-
-	union Data {
-		void* ptr;
-		ulong unsigned;
-		real floating;
-		void[] array;
-	}
-
-	Data data;
-	bool pointsToMemory;
-}
-
-
 class VariableStore
 {
 private:
@@ -73,8 +55,8 @@ private:
 	}
 
 public:
-	StoreEntry[string] data;
-	StoreEntry returnData;
+	VariableData[string] data;
+	VariableData returnData;
 
 	string[] requireInit;
 
@@ -107,7 +89,7 @@ public:
 
 	void init(string name, ir.Type type, size_t size)
 	{
-		StoreEntry entry;
+		VariableData entry;
 		init(entry, name, type, size);
 		// maybe check if this name already exists and fail
 		data[name] = entry;
@@ -123,7 +105,7 @@ public:
 		return getPointer(data[name]);
 	}
 
-	ref StoreEntry get(string name)
+	ref VariableData get(string name)
 	{
 		return data[name];
 	}
@@ -133,7 +115,7 @@ public:
 		return (name in data) !is null;
 	}
 
-	StoreEntry[] values()
+	VariableData[] values()
 	{
 		return data.values;
 	}
@@ -149,7 +131,7 @@ public:
 	}
 
 protected:
-	void init(out StoreEntry entry, string name, ir.Type type, size_t size)
+	void init(out VariableData entry, string name, ir.Type type, size_t size)
 	{
 		entry.name = name;
 
@@ -165,7 +147,7 @@ protected:
 		}
 	}
 
-	void* getPointer(ref StoreEntry entry)
+	void* getPointer(ref VariableData entry)
 	{
 		if (entry.pointsToMemory) {
 			return entry.data.ptr;

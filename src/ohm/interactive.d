@@ -18,27 +18,34 @@ import ohm.print.printer : OhmPrinter;
 
 class InteractiveConsole : Interactive {
 public:
-	Settings settings;
 	OhmController controller;
-	Input input;
 	Reader reader;
-	Output output;
 	Printer printer;
 
 	Location location;
 
+	@property ref Settings settings() { return controller.settings; }
+
+protected:
+	this(OhmController controller, Reader reader, Printer printer)
+	{
+		this.controller = controller;
+
+		this.reader = reader;
+		this.printer = printer;
+
+		this.location = Location("ohm", 0, 0, 0);
+	}
+
 public:
 	this(Settings settings, Input input, Output output)
 	{
-		this.settings = settings;
-		this.input = input;
-		this.output = output;
-
-		this.location = Location("ohm", 0, 0, 0);
-		this.controller = new OhmController(settings);
-
-		this.reader = new OhmReader(input, controller);
-		this.printer = new OhmPrinter(output, controller);
+		auto controller = new OhmController(settings);
+		this(
+			controller,
+			new OhmReader(input, controller),
+			new OhmPrinter(output, controller)
+		);
 	}
 
 	void run()
@@ -53,7 +60,7 @@ public:
 			} catch (ExitException e) {
 				break;
 			} catch (CompilerError e) {
-				output.writeln(
+				printer.writeln(
 					settings.showStackTraces ? e.toString() : e.msg
 				);
 			}
