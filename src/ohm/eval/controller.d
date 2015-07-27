@@ -36,7 +36,7 @@ import ohm.interfaces : VariableData;
 import ohm.read.parser : OhmParser;
 import ohm.eval.backend : OhmBackend;
 import ohm.eval.languagepass : OhmLanguagePass;
-import ohm.eval.datastore : VariableStore;
+import ohm.eval.datastore : MemorizingVariableStore;
 import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
 
 
@@ -47,7 +47,7 @@ public:
 	OhmParser frontend;
 	OhmLanguagePass languagePass;
 	OhmBackend backend;
-	VariableStore varStore;
+	MemorizingVariableStore varStore;
 
 	Pass[] debugVisitors;
 
@@ -69,7 +69,7 @@ protected:
 		this.frontend = f;
 		this.languagePass = lp;
 		this.backend = b;
-		this.varStore = new VariableStore();
+		this.varStore = new MemorizingVariableStore();
 
 		this.mIncludes = settings.stdIncludePaths;
 		mIncludes ~= settings.includePaths;
@@ -258,7 +258,7 @@ public:
 		return backend.getCompiledModuleState(mLastModule);
 	}
 
-	VariableData execute(State state)
+	VariableData execute(State state, size_t num)
 	{
 		scope(exit) state.close();
 
@@ -279,6 +279,7 @@ public:
 		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);
 		LLVMDisposeGenericValue(LLVMRunFunction(ee, func, 0, null));
 
+		varStore.safeResult(num);
 		return varStore.returnData;
 	}
 

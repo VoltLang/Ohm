@@ -76,7 +76,7 @@ public:
 		reader.read(location, inputPrompt);
 
 		auto state = controller.compile();
-		auto result = controller.execute(state);
+		auto result = controller.execute(state, location.line + 1);
 
 		printer.print(result, outputPrompt);
 	}
@@ -104,7 +104,7 @@ protected:
 			// only compile if really required
 			reader.process(location, source, false);
 			auto state = controller.compile();
-			auto result = controller.execute(state);
+			auto result = controller.execute(state, location.line + 1);
 			type = result.type;
 		}
 

@@ -4,9 +4,11 @@ module ohm.eval.datastore;
 import std.conv : to;
 import std.stdio : stderr;
 import std.string : format;
-import std.algorithm : canFind, countUntil, remove;
+import std.algorithm : canFind, countUntil, remove, all;
+import core.stdc.string : memmove;
 
 import ir = volt.ir.ir;
+import volt.ir.util : copyTypeSmart;
 import volt.semantic.classify : size;
 
 import ohm.interfaces : VariableData;
@@ -153,5 +155,101 @@ protected:
 			return entry.data.ptr;
 		}
 		return &(entry.data);
+	}
+}
+
+class MemorizingVariableStore : VariableStore
+{
+protected:
+	VariableData[string] mOldResults;
+	VariableData[] mLatestResults;
+	int mMaxLatestResults;
+
+public:
+	this(int maxLatestResults = 3)
+	{
+		this.mMaxLatestResults = maxLatestResults;
+	}
+
+	override void* getPointer(string name)
+	{
+		auto d = getData(name);
+		assert(d !is null);
+		return super.getPointer(*d);
+	}
+
+	override ref VariableData get(string name)
+	{
+		auto d = getData(name);
+		assert(d !is null);
+		return *d;
+	}
+
+	override bool has(string name)
+	{
+		return getData(name) !is null;
+	}
+
+	override VariableData[] values()
+	{
+		return data.values ~ mOldResults.values ~ mLatestResults;
+	}
+
+	void safeResult(size_t num)
+	{
+		auto asPrim = cast(ir.PrimitiveType)returnData.type;
+		if (asPrim is null || asPrim.type != ir.PrimitiveType.Kind.Void) {
+			safeResult(returnData, num);
+		}
+	}
+
+	void safeResult(VariableData result, size_t num)
+	{
+		result.name = format("_%d", num);
+		// replace the element if it already exists in data
+		data.remove(result.name);
+		result.type = copyTypeSmart(result.type.location, result.type);
+		mOldResults[result.name] = result;
+
+		// increase the size if we aren't at the maximum yet
+		if (mLatestResults.length < mMaxLatestResults) {
+			mLatestResults.length++;
+		}
+		// move every element by one to the right, freeing up the first spot
+		for (int index = cast(int)mLatestResults.length-2; index >= 0; index--) {
+			mLatestResults[index+1] = mLatestResults[index];
+		}
+
+		// store a copy of the result in mLatestResults
+		VariableData copy = result;
+		copy.name = "_";
+		data.remove(copy.name);
+		copy.type = copyTypeSmart(result.type.location, result.type);
+		mLatestResults[0] = copy;
+
+		// update the names
+		// the index 'i' points to the previous element, since we start at the second element
+		foreach(size_t i, ref lr; mLatestResults[1..$]) {
+			lr.name = mLatestResults[i].name ~ "_";
+			data.remove(lr.name);
+		}
+	}
+
+protected:
+	VariableData* getData(string name)
+	{
+		if (auto val = name in data) {
+			return val;
+		}
+
+		if (auto val = name in mOldResults) {
+			return val;
+		}
+
+		if (all!"a == '_'"(name) && name.length <= mLatestResults.length) {
+			return &mLatestResults[name.length-1];
+		}
+
+		return null;
 	}
 }
