@@ -54,6 +54,7 @@ public:
 protected:
 	ir.Module mModule;
 	ir.Function mREPLFunc;
+	ir.Module mLastModule;
 
 	string[] mIncludes;
 	ir.Module[string] mModulesByName;
@@ -211,25 +212,21 @@ public:
 
 	State compile() {
 		// make copies so wen can reuse the AST later on
-		auto copiedMod = copy(mModule);
+		mLastModule = copy(mModule);
 		auto copiedREPLFunc = copy(mREPLFunc);
-		copiedMod.children.nodes ~= copiedREPLFunc;
+		mLastModule.children.nodes ~= copiedREPLFunc;
 
-		ir.Module[] mods = [copiedMod];
+		ir.Module[] mods = [mLastModule];
 
 		bool debugPassesRun = false;
 		void debugPasses(ir.Module[] mods)
 		{
 			if (!debugPassesRun && settings.internalDebug) {
 				debugPassesRun = true;
-				foreach(pass; debugVisitors) {
-					foreach(mod; mods) {
-						pass.transform(mod);
-					}
-				}
+				dumpModule(mods);
 			}
 		}
-		scope(exit) debugPasses([copiedMod]);
+		scope(failure) debugPasses([mLastModule]);
 
 		// reset leftover state
 		languagePass.reset();
@@ -256,9 +253,9 @@ public:
 		// All modules need to be run trough phase3.
 		languagePass.phase3(mods);
 
-		debugPasses([copiedMod]);
+		debugPasses([mLastModule]);
 
-		return backend.getCompiledModuleState(copiedMod);
+		return backend.getCompiledModuleState(mLastModule);
 	}
 
 	VariableData execute(State state)
@@ -283,6 +280,22 @@ public:
 		LLVMDisposeGenericValue(LLVMRunFunction(ee, func, 0, null));
 
 		return varStore.returnData;
+	}
+
+	void dumpModule()
+	{
+		dumpModule(mLastModule);
+	}
+
+	void dumpModule(ir.Module[] mods...)
+	{
+		foreach(pass; debugVisitors) {
+			foreach(mod; mods) {
+				if (mod is null)
+					continue;
+				pass.transform(mod);
+			}
+		}
 	}
 
 	void loadModule(string[] paths...)

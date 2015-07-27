@@ -49,6 +49,7 @@ public:
 		);
 
 		reader.setCommand(`\t`, &printType);
+		reader.setCommand(`\dump`, &dumpModule);
 	}
 
 	void run()
@@ -114,6 +115,12 @@ protected:
 			printer.writeln("");
 		}
 
+		return false;
+	}
+
+	bool dumpModule(string command, ref Location location, ref string source)
+	{
+		controller.dumpModule();
 		return false;
 	}
 }
