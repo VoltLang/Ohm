@@ -161,7 +161,6 @@ protected:
 class MemorizingVariableStore : VariableStore
 {
 protected:
-	VariableData[string] mOldResults;
 	VariableData[] mLatestResults;
 	int mMaxLatestResults;
 
@@ -192,7 +191,7 @@ public:
 
 	override VariableData[] values()
 	{
-		return data.values ~ mOldResults.values ~ mLatestResults;
+		return data.values ~ mLatestResults;
 	}
 
 	void safeResult(size_t num)
@@ -209,7 +208,7 @@ public:
 		// replace the element if it already exists in data
 		data.remove(result.name);
 		result.type = copyTypeSmart(result.type.location, result.type);
-		mOldResults[result.name] = result;
+		data[result.name] = result;
 
 		// increase the size if we aren't at the maximum yet
 		if (mLatestResults.length < mMaxLatestResults) {
@@ -239,10 +238,6 @@ protected:
 	VariableData* getData(string name)
 	{
 		if (auto val = name in data) {
-			return val;
-		}
-
-		if (auto val = name in mOldResults) {
 			return val;
 		}
 
