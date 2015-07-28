@@ -170,30 +170,6 @@ public:
 		this.mMaxLatestResults = maxLatestResults;
 	}
 
-	override void* getPointer(string name)
-	{
-		auto d = getData(name);
-		assert(d !is null);
-		return super.getPointer(*d);
-	}
-
-	override ref VariableData get(string name)
-	{
-		auto d = getData(name);
-		assert(d !is null);
-		return *d;
-	}
-
-	override bool has(string name)
-	{
-		return getData(name) !is null;
-	}
-
-	override VariableData[] values()
-	{
-		return data.values ~ mLatestResults;
-	}
-
 	void safeResult(size_t num)
 	{
 		if (!isVoid(returnData.type)) {
@@ -227,23 +203,12 @@ public:
 
 		// update the names
 		// the index 'i' points to the previous element, since we start at the second element
-		foreach(size_t i, ref lr; mLatestResults[1..$]) {
+		foreach (size_t i, ref lr; mLatestResults[1..$]) {
 			lr.name = mLatestResults[i].name ~ "_";
-			data.remove(lr.name);
-		}
-	}
-
-protected:
-	VariableData* getData(string name)
-	{
-		if (auto val = name in data) {
-			return val;
 		}
 
-		if (all!"a == '_'"(name) && name.length <= mLatestResults.length) {
-			return &mLatestResults[name.length-1];
+		foreach (lr; mLatestResults) {
+			data[lr.name] = lr;
 		}
-
-		return null;
 	}
 }
