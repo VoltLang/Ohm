@@ -52,9 +52,16 @@ public:
 	Pass[] debugVisitors;
 
 protected:
-	ir.Module mModule;
-	ir.Function mREPLFunc;
-	ir.Module mLastModule;
+	static struct REPLState {
+		ir.Module mModule;
+		ir.Function mREPLFunc;
+		ir.Module mLastModule;
+	}
+	REPLState[] mStack;
+	@property ref ir.Module mModule() in { assert(mStack.length > 0); } body { return mStack[$-1].mModule; }
+	@property ref ir.Function mREPLFunc() in { assert(mStack.length > 0); } body { return mStack[$-1].mREPLFunc; }
+	@property ref ir.Module mLastModule() in { assert(mStack.length > 0); } body { return mStack[$-1].mLastModule; }
+
 
 	string[] mIncludes;
 	ir.Module[string] mModulesByName;
@@ -78,6 +85,9 @@ protected:
 		LLVMLinkInMCJIT();
 		this.loadModule(settings.stdFiles);
 		this.loadLibrary(settings.libraryFiles);
+
+		// create initial state
+		this.mStack.length = 1;
 
 		// AST setup
 		this.mModule = createSimpleModule(["ohm"]);
@@ -118,6 +128,21 @@ public:
 		debugVisitors ~= new DebugPrinter();
 		debugVisitors ~= new DebugMarker("Running PrettyPrinter:");
 		debugVisitors ~= new PrettyPrinter();
+	}
+
+	void push()
+	{
+		REPLState state;
+		state.mModule = mModule is null ? null : copy(mModule);
+		state.mREPLFunc = mREPLFunc is null ? null : copy(mREPLFunc);
+		state.mLastModule = mLastModule is null ? null : copy(mLastModule);
+		mStack ~= state;
+	}
+
+	void pop()
+	{
+		// cut off the last element
+		mStack.length = mStack.length-1;
 	}
 
 	void addTopLevel(ir.TopLevelBlock tlb)

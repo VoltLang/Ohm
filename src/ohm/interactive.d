@@ -57,6 +57,7 @@ public:
 		for (size_t line = location.line;;line++) {
 			location.line = line;
 
+			controller.push();
 			try {
 				repl();
 			} catch (ContinueException e) {
@@ -64,6 +65,7 @@ public:
 			} catch (ExitException e) {
 				break;
 			} catch (CompilerError e) {
+				controller.pop();
 				printer.writeln(
 					settings.showStackTraces ? e.toString() : e.msg
 				);
