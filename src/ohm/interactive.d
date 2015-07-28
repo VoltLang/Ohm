@@ -110,9 +110,8 @@ protected:
 			type = result.type;
 		}
 
-		if (type is null) {
-			printer.writeln("void");
-		} else {
+		auto asPrim = cast(ir.PrimitiveType)type;
+		if (type !is null && (asPrim is null || asPrim.type != ir.PrimitiveType.Kind.Void)) {
 			printer.print(type);
 			printer.writeln("");
 		}
