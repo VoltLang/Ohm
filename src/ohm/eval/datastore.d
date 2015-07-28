@@ -9,7 +9,7 @@ import core.stdc.string : memmove;
 
 import ir = volt.ir.ir;
 import volt.ir.util : copyTypeSmart;
-import volt.semantic.classify : size;
+import volt.semantic.classify : size, isVoid;
 
 import ohm.interfaces : VariableData;
 
@@ -196,8 +196,7 @@ public:
 
 	void safeResult(size_t num)
 	{
-		auto asPrim = cast(ir.PrimitiveType)returnData.type;
-		if (asPrim is null || asPrim.type != ir.PrimitiveType.Kind.Void) {
+		if (!isVoid(returnData.type)) {
 			safeResult(returnData, num);
 		}
 	}

@@ -4,6 +4,7 @@ import std.string : format;
 
 import ir = volt.ir.ir;
 import volt.token.location : Location;
+import volt.semantic.classify : isVoid;
 import volt.llvm.interfaces : State;
 import volt.exceptions : CompilerError;
 
@@ -110,8 +111,7 @@ protected:
 			type = result.type;
 		}
 
-		auto asPrim = cast(ir.PrimitiveType)type;
-		if (type !is null && (asPrim is null || asPrim.type != ir.PrimitiveType.Kind.Void)) {
+		if (type !is null && !isVoid(type)) {
 			printer.print(type);
 			printer.writeln("");
 		}
