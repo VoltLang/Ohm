@@ -8,7 +8,7 @@ import ir = volt.ir.ir;
 import volt.token.location : Location;
 import volt.semantic.classify : isVoid;
 import volt.llvm.interfaces : State;
-import volt.exceptions : CompilerError;
+import volt.exceptions : CompilerException;
 
 import ohm.interfaces : Interactive, Input, Output, Reader, Printer;
 import ohm.settings : Settings;
@@ -60,15 +60,13 @@ public:
 		for (size_t line = location.line;;line++) {
 			location.line = line;
 
-			controller.push();
 			try {
 				repl();
 			} catch (ContinueException e) {
 				continue;
 			} catch (ExitException e) {
 				break;
-			} catch (CompilerError e) {
-				controller.pop();
+			} catch (CompilerException e) {
 				printer.writeln(
 					settings.showStackTraces ? e.toString() : e.msg
 				);
@@ -78,6 +76,9 @@ public:
 
 	void repl()
 	{
+		controller.push();
+		scope(failure) controller.pop();
+
 		reader.read(location, inputPrompt);
 
 		auto result = controller.run(location.line + 1);
