@@ -52,16 +52,17 @@ public:
 	Pass[] debugVisitors;
 
 protected:
-	static struct REPLState {
-		ir.Module mModule;
-		ir.Function mREPLFunc;
-		ir.Module mLastModule;
+	static struct ReplState {
+		ir.Module mod;
+		ir.Function replFunc;
+		ir.Module transformed;
+		State state;
 	}
-	REPLState[] mStack;
-	@property ref ir.Module mModule() in { assert(mStack.length > 0); } body { return mStack[$-1].mModule; }
-	@property ref ir.Function mREPLFunc() in { assert(mStack.length > 0); } body { return mStack[$-1].mREPLFunc; }
-	@property ref ir.Module mLastModule() in { assert(mStack.length > 0); } body { return mStack[$-1].mLastModule; }
-
+	ReplState[] mStack;
+	@property ref ir.Module mModule() in { assert(mStack.length > 0); } body { return mStack[$-1].mod; }
+	@property ref ir.Function mReplFunc() in { assert(mStack.length > 0); } body { return mStack[$-1].replFunc; }
+	@property ref ir.Module mTransformed() in { assert(mStack.length > 0); } body { return mStack[$-1].transformed; }
+	@property ref State mState() in { assert(mStack.length > 0); } body { return mStack[$-1].state; }
 
 	string[] mIncludes;
 	ir.Module[string] mModulesByName;
@@ -104,9 +105,9 @@ protected:
 
 		// main function which works as a scope and
 		// will actually be called by the JIT
-		this.mREPLFunc = createSimpleFunction("__ohm_main");
+		this.mReplFunc = createSimpleFunction("__ohm_main");
 		// the extyper will automatically set the correct return type
-		mREPLFunc.isAutoReturn = true;
+		mReplFunc.isAutoReturn = true;
 
 		// the runtime expects a main function, without this
 		// function we would get linker errors (from the JIT).
@@ -132,17 +133,26 @@ public:
 
 	void push()
 	{
-		REPLState state;
-		state.mModule = mModule is null ? null : copy(mModule);
-		state.mREPLFunc = mREPLFunc is null ? null : copy(mREPLFunc);
-		state.mLastModule = mLastModule is null ? null : copy(mLastModule);
+		ReplState state;
+		state.mod = mModule is null ? null : copy(mModule);
+		state.replFunc = mReplFunc is null ? null : copy(mReplFunc);
+		// mTransformed and mState get filled in later on
+		state.transformed = null;
+		state.state = null;
 		mStack ~= state;
 	}
 
 	void pop()
 	{
+		if (mStack.length > 0) {
+			auto state = mStack[$-1].state;
+			if (state !is null) {
+				state.close();
+			}
+		}
 		// cut off the last element
 		mStack.length = mStack.length-1;
+		assert(mStack.length > 0, "pop called too many times");
 	}
 
 	void addTopLevel(ir.TopLevelBlock tlb)
@@ -156,7 +166,7 @@ public:
 	void setStatements(ir.Node[] statements)
 	{
 		if (statements.length == 0) {
-			mREPLFunc._body.statements = [];
+			mReplFunc._body.statements = [];
 			return;
 		}
 
@@ -167,7 +177,7 @@ public:
 			otherNodes[i] = statement;
 		}
 
-		mREPLFunc._body.statements = otherNodes;
+		mReplFunc._body.statements = otherNodes;
 
 		ir.Exp exp = null;
 		if (auto expStmt = cast(ir.ExpStatement)lastNode) {
@@ -175,12 +185,12 @@ public:
 				exp = expStmt.exp;
 			}
 		} else {
-			mREPLFunc._body.statements ~= lastNode;
+			mReplFunc._body.statements ~= lastNode;
 		}
 
 		auto ret = new ir.ReturnStatement();
 		ret.exp = exp;
-		mREPLFunc._body.statements ~= ret;
+		mReplFunc._body.statements ~= ret;
 	}
 
 	ir.Module getModule(ir.QualifiedName name)
@@ -225,6 +235,12 @@ public:
 	}
 
 	void close() {
+		foreach (rs; mStack) {
+			if (rs.state !is null) {
+				rs.state.close();
+			}
+		}
+
 		frontend.close();
 		languagePass.close();
 		backend.close();
@@ -235,82 +251,16 @@ public:
 		backend = null;
 	}
 
-	State compile() {
-		// make copies so wen can reuse the AST later on
-		mLastModule = copy(mModule);
-		auto copiedREPLFunc = copy(mREPLFunc);
-		mLastModule.children.nodes ~= copiedREPLFunc;
-
-		ir.Module[] mods = [mLastModule];
-
-		bool debugPassesRun = false;
-		void debugPasses(ir.Module[] mods)
-		{
-			if (!debugPassesRun && settings.internalDebug) {
-				debugPassesRun = true;
-				dumpModule(mods);
-			}
-		}
-		scope(failure) debugPasses([mLastModule]);
-
-		// reset leftover state
-		languagePass.reset();
-		varStore.returnData = VariableData();
-
-		// After we have loaded all of the modules
-		// setup the pointers, this allows for suppling
-		// a user defined object module.
-		languagePass.setupOneTruePointers();
-
-		// Force phase 1 to be executed on the modules.
-		foreach (mod; mods)
-			languagePass.phase1(mod);
-
-		// add other modules used by the main module
-		mods ~= mModulesByName.values;
-
-		// All modules need to be run trough phase2.
-		languagePass.phase2(mods);
-
-		// make sure we don't use a mangled name
-		copiedREPLFunc.mangledName = copiedREPLFunc.name;
-
-		// All modules need to be run trough phase3.
-		languagePass.phase3(mods);
-
-		debugPasses([mLastModule]);
-
-		return backend.getCompiledModuleState(mLastModule);
-	}
-
-	VariableData execute(State state, size_t num)
-	{
-		scope(exit) state.close();
-
-		string error;
-		LLVMExecutionEngineRef ee = null;
-		assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error) == 0, error);
-
-		foreach (mod; mLLVMModules.values) {
-			LLVMAddModule(ee, mod);
-		}
-
-		// workaround which calls ee->finalizeObjects, which makes
-		// LLVMRunStaticConstructors not segfault
-		LLVMDisposeGenericValue(LLVMRunFunction(ee, "vmain", []));
-		LLVMRunStaticConstructors(ee);
-
-		LLVMValueRef func;
-		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);
-		LLVMDisposeGenericValue(LLVMRunFunction(ee, func, 0, null));
-
-		varStore.safeResult(num);
-		return varStore.returnData;
+	VariableData run(size_t num) {
+		mState = compile();
+		return execute(mState, num);
 	}
 
 	void dumpModule()
 	{
-		dumpModule(mLastModule);
+		if (mStack.length >= 2) {
+			dumpModule(mStack[$-2].transformed);
+		}
 	}
 
 	void dumpModule(ir.Module[] mods...)
@@ -320,6 +270,16 @@ public:
 				if (mod is null)
 					continue;
 				pass.transform(mod);
+			}
+		}
+	}
+
+	void dumpIR()
+	{
+		if (mStack.length >= 2) {
+			auto state = mStack[$-2].state;
+			if (state !is null && state.mod !is null) {
+				LLVMDumpModule(state.mod);
 			}
 		}
 	}
@@ -358,6 +318,77 @@ public:
 	}
 
 protected:
+	State compile() {
+		// make copies so wen can reuse the AST later on
+		mTransformed = copy(mModule);
+		auto copiedREPLFunc = copy(mReplFunc);
+		mTransformed.children.nodes ~= copiedREPLFunc;
+
+		ir.Module[] mods = [mTransformed];
+
+		bool debugPassesRun = false;
+		void debugPasses(ir.Module[] mods)
+		{
+			if (!debugPassesRun && settings.internalDebug) {
+				debugPassesRun = true;
+				dumpModule(mods);
+			}
+		}
+		scope(failure) debugPasses([mTransformed]);
+
+		// reset leftover state
+		languagePass.reset();
+		varStore.returnData = VariableData();
+
+		// After we have loaded all of the modules
+		// setup the pointers, this allows for suppling
+		// a user defined object module.
+		languagePass.setupOneTruePointers();
+
+		// Force phase 1 to be executed on the modules.
+		foreach (mod; mods)
+			languagePass.phase1(mod);
+
+		// add other modules used by the main module
+		mods ~= mModulesByName.values;
+
+		// All modules need to be run trough phase2.
+		languagePass.phase2(mods);
+
+		// make sure we don't use a mangled name
+		copiedREPLFunc.mangledName = copiedREPLFunc.name;
+
+		// All modules need to be run trough phase3.
+		languagePass.phase3(mods);
+
+		debugPasses([mTransformed]);
+
+		return backend.getCompiledModuleState(mTransformed);
+	}
+
+	VariableData execute(State state, size_t num)
+	{
+		string error;
+		LLVMExecutionEngineRef ee = null;
+		assert(LLVMCreateMCJITCompilerForModule(&ee, state.mod, null, 0, error) == 0, error);
+
+		foreach (mod; mLLVMModules.values) {
+			LLVMAddModule(ee, mod);
+		}
+
+		// workaround which calls ee->finalizeObjects, which makes
+		// LLVMRunStaticConstructors not segfault
+		LLVMDisposeGenericValue(LLVMRunFunction(ee, "vmain", []));
+		LLVMRunStaticConstructors(ee);
+
+		LLVMValueRef func;
+		assert(LLVMFindFunction(ee, "__ohm_main", &func) == 0);
+		LLVMDisposeGenericValue(LLVMRunFunction(ee, func, 0, null));
+
+		varStore.safeResult(num);
+		return varStore.returnData;
+	}
+
 	ir.Module loadAndParse(string file)
 	{
 		Location loc;

@@ -1,6 +1,8 @@
 module ohm.interactive;
 
-import std.string : format;
+import std.string : format, toLower, strip;
+import std.array : split;
+import std.algorithm : canFind;
 
 import ir = volt.ir.ir;
 import volt.token.location : Location;
@@ -78,10 +80,14 @@ public:
 	{
 		reader.read(location, inputPrompt);
 
-		auto state = controller.compile();
-		auto result = controller.execute(state, location.line + 1);
+		auto result = controller.run(location.line + 1);
 
 		printer.print(result, outputPrompt);
+	}
+
+	void close()
+	{
+		controller.close();
 	}
 
 protected:
@@ -106,8 +112,7 @@ protected:
 		} else {
 			// only compile if really required
 			reader.process(location, source, false);
-			auto state = controller.compile();
-			auto result = controller.execute(state, location.line + 1);
+			auto result = controller.run(location.line + 1);
 			type = result.type;
 		}
 
@@ -121,7 +126,21 @@ protected:
 
 	bool dumpModule(string command, ref Location location, ref string source)
 	{
-		controller.dumpModule();
+		source = toLower(strip(source));
+		if (source.length == 0) {
+			controller.dumpModule();
+			controller.dumpIR();
+			return false;
+		}
+
+		auto ss = split(source);
+		if (canFind(ss, "mod", "module")) {
+			controller.dumpModule();
+		}
+		if (canFind(ss, "ir")) {
+			controller.dumpIR();
+		}
+
 		return false;
 	}
 }

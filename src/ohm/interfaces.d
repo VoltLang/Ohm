@@ -28,6 +28,7 @@ public:
 interface Interactive {
 public:
 	void run();
+	void close();
 }
 
 

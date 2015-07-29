@@ -54,7 +54,11 @@ int main(string[] args)
 		writeln(e.msg);
 		return 1;
 	}
-	interactive.run();
+
+	{
+		scope(exit) interactive.close();
+		interactive.run();
+	}
 
 	return 0;
 }
