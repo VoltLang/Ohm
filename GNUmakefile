@@ -17,6 +17,11 @@ VOLTA_BIN	= $(VOLTA)$(PATH_SEP)rt$(PATH_SEP)libvrt-host.bc
 
 LLVM_CONFIG	?= llvm-config
 LLVM_LDFLAGS	?= $(shell $(LLVM_CONFIG) --libs core analysis bitwriter bitreader linker target x86codegen executionengine interpreter mcjit support) $(shell $(LLVM_CONFIG) --ldflags)
+ifeq ($(shell echo "$(LLVM_CONFIG) --system-libs &> /dev/null && echo OK" | bash -t), OK)
+	LLVM_LDFLAGS := $(LLVM_LDFLAGS) $(shell $(LLVM_CONFIG) --ldflags --system-libs)
+else
+	LLVM_LDFLAGS := $(LLVM_LDFLAGS) $(shell $(LLVM_CONFIG) --ldflags)
+endif
 
 PKG_CONFIG	?= pkg-config
 
