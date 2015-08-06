@@ -9,17 +9,17 @@ Dependencies
 ------------
 
 Ohm shares the dependencies of `Volta <https://github.com/VoltLang/Volta/>`_.
-Ohm additionally requires libedit.
+Ohm additionally requires libreadline.
 
 
 Linux
 *****
 
-On Linux installing libedit with your packagemanager is enough:
+On Linux installing libreadline with your packagemanager is enough:
 
 ::
 
-  $ sudo apt-get install libedit-dev
+  $ sudo apt-get install libreadline-dev
 
 
 Building
