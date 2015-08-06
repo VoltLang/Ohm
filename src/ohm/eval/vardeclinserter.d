@@ -50,6 +50,11 @@ public:
 				if (varStore.willInitLater(val.name))
 					continue;
 
+				auto asTR = cast(ir.TypeReference)val.type;
+				if (asTR !is null) {
+					asTR.type = null;
+				}
+
 				decls ~= buildVariable(fn.location, val.type, ir.Variable.Storage.Function, val.name);
 			}
 
