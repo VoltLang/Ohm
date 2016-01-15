@@ -86,6 +86,6 @@ ir.Import addImport(Location location, ir.Module mod, string[] name, bool _stati
 
 ir.Function lookupFunction(LanguagePass lp, ir.Module mod, Location loc, string name)
 {
-	auto store = lookupOnlyThisScope(lp, mod.myScope, loc, name);
+	auto store = lookupOnlyThisScopeAndClassParents(lp, mod.myScope, loc, name);
 	return ensureFunction(mod.myScope, loc, name, store);
 }

@@ -5,7 +5,7 @@ import ir = volt.ir.ir;
 
 import ohm.interfaces : Output, Printer;
 import ohm.eval.datastore : VariableData;
-import ohm.eval.controller : OhmController;
+import ohm.eval.driver : OhmDriver;
 import ohm.print.type : TypeFormatter;
 import ohm.print.data : DataFormatter;
 
@@ -14,7 +14,7 @@ class OhmPrinter : Printer
 {
 public:
 	Output output;
-	OhmController controller;
+	OhmDriver driver;
 	TypeFormatter typeFormatter;
 	DataFormatter dataFormatter;
 
@@ -22,12 +22,12 @@ protected:
 	string mPrompt = null;
 
 public:
-	this(Output output, OhmController controller)
+	this(Output output, OhmDriver driver)
 	{
 		this.output = output;
-		this.controller = controller;
+		this.driver = driver;
 		this.typeFormatter = new TypeFormatter("\t", &sink);
-		this.dataFormatter = new DataFormatter(controller.languagePass, "\t", &sink);
+		this.dataFormatter = new DataFormatter(driver.languagePass, "\t", &sink);
 	}
 
 	void write(string output)

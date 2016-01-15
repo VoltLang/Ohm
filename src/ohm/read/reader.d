@@ -10,7 +10,7 @@ import volt.exceptions : CompilerError;
 
 import ohm.interfaces : Input, Reader, CommandCallback;
 import ohm.exceptions : ExitException, ContinueException;
-import ohm.eval.controller : OhmController;
+import ohm.eval.driver : OhmDriver;
 import ohm.read.parser : OhmParser;
 import ohm.read.util : Balance, balancedParens;
 
@@ -19,19 +19,19 @@ class OhmReader : Reader
 {
 public:
 	Input input;
-	OhmController controller;
+	OhmDriver driver;
 
 	@property
-	OhmParser parser() in { assert(controller !is null); } body { return controller.frontend; }
+	OhmParser parser() in { assert(driver !is null); } body { return driver.frontend; }
 
 protected:
 	CommandCallback[string] mCommands;
 
 public:
-	this(Input input, OhmController controller)
+	this(Input input, OhmDriver driver)
 	{
 		this.input = input;
-		this.controller = controller;
+		this.driver = driver;
 	}
 
 	void read(Location location, string prompt, bool processCommands = true)
@@ -52,8 +52,8 @@ public:
 		// the parser will eat/ignore additional semicolons
 		parser.parseTopLevelsOrStatements(source ~ ";", location, tlb, statements);
 
-		controller.addTopLevel(tlb);
-		controller.setStatements(statements);
+		driver.addTopLevel(tlb);
+		driver.setStatements(statements);
 
 		// don't compile if we did nothing but (re)set the statements
 		if (statements.length == 0 && tlb.nodes.length == 0) {

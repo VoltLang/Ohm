@@ -9,11 +9,12 @@ import volt.token.location : Location;
 import volt.semantic.classify : isVoid;
 import volt.llvm.interfaces : State;
 import volt.exceptions : CompilerException;
+import volt.interfaces : VersionSet;
 
 import ohm.interfaces : Interactive, Input, Output, Reader, Printer;
 import ohm.settings : Settings;
 import ohm.exceptions : ExitException, ContinueException;
-import ohm.eval.controller : OhmController;
+import ohm.eval.driver : OhmDriver;
 import ohm.eval.backend : OhmBackend;
 import ohm.read.parser : OhmParser;
 import ohm.read.reader : OhmReader;
@@ -22,18 +23,18 @@ import ohm.print.printer : OhmPrinter;
 
 class InteractiveConsole : Interactive {
 public:
-	OhmController controller;
+	OhmDriver driver;
 	Reader reader;
 	Printer printer;
 
 	Location location;
 
-	@property ref Settings settings() { return controller.settings; }
+	@property ref Settings settings() { return driver.settings; }
 
 protected:
-	this(OhmController controller, Reader reader, Printer printer)
+	this(OhmDriver driver, Reader reader, Printer printer)
 	{
-		this.controller = controller;
+		this.driver = driver;
 
 		this.reader = reader;
 		this.printer = printer;
@@ -42,13 +43,13 @@ protected:
 	}
 
 public:
-	this(Settings settings, Input input, Output output)
+	this(VersionSet ver, Settings settings, Input input, Output output)
 	{
-		auto controller = new OhmController(settings);
+		auto driver = new OhmDriver(ver, settings);
 		this(
-			controller,
-			new OhmReader(input, controller),
-			new OhmPrinter(output, controller)
+			driver,
+			new OhmReader(input, driver),
+			new OhmPrinter(output, driver)
 		);
 
 		reader.setCommand(`\t`, &printType);
@@ -76,19 +77,19 @@ public:
 
 	void repl()
 	{
-		controller.push();
-		scope(failure) controller.pop();
+		driver.push();
+		scope(failure) driver.pop();
 
 		reader.read(location, inputPrompt);
 
-		auto result = controller.run(location.line + 1);
+		auto result = driver.run(location.line + 1);
 
 		printer.print(result, outputPrompt);
 	}
 
 	void close()
 	{
-		controller.close();
+		driver.close();
 	}
 
 protected:
@@ -107,13 +108,13 @@ protected:
 	{
 		ir.Type type = null;
 		if (source.length == 0) {
-			type = controller.varStore.returnData.type;
-		} else if(controller.varStore.has(source)) {
-			type = controller.varStore.get(source).type;
+			type = driver.varStore.returnData.type;
+		} else if(driver.varStore.has(source)) {
+			type = driver.varStore.get(source).type;
 		} else {
 			// only compile if really required
 			reader.process(location, source, false);
-			auto result = controller.run(location.line + 1);
+			auto result = driver.run(location.line + 1);
 			type = result.type;
 		}
 
@@ -129,17 +130,17 @@ protected:
 	{
 		source = toLower(strip(source));
 		if (source.length == 0) {
-			controller.dumpModule();
-			controller.dumpIR();
+			driver.dumpModule();
+			driver.dumpIR();
 			return false;
 		}
 
 		auto ss = split(source);
 		if (canFind(ss, "mod", "module")) {
-			controller.dumpModule();
+			driver.dumpModule();
 		}
 		if (canFind(ss, "ir")) {
-			controller.dumpIR();
+			driver.dumpIR();
 		}
 
 		return false;

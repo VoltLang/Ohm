@@ -34,7 +34,7 @@ DSOURCES	= $(call getSource,src/ohm,d) src/main.d \
 		  $(call getSource,src/Volta/src/volt,d) $(call getSource,src/Volta/src/watt,d) $(call getSource,src/Volta/src/lib,d)
 DOBJECTS	= $(patsubst %.d,$(DBUILD_PATH)/%$(EXT), $(DSOURCES))
 
-CSOURCES	= $(call getSource,src/lib/c,cpp)
+CSOURCES	=
 COBJECTS	= $(patsubst %.cpp,$(CBUILD_PATH)/%$(EXT), $(CSOURCES))
 
 
@@ -52,6 +52,9 @@ init: $(VOLTA)
 
 run: $(TARGET) $(VOLTA_BIN)
 	@.$(PATH_SEP)$(TARGET) --stdlib-file src/Volta/rt/libvrt-host.bc --stdlib-I src/Volta/rt/src $(ARGUMENTS)
+
+gdb: $(TARGET) $(VOLTA_BIN)
+	gdb --args .$(PATH_SEP)$(TARGET) --stdlib-file src/Volta/rt/libvrt-host.bc --stdlib-I src/Volta/rt/src $(ARGUMENTS)
 
 clean:
 	@echo "  RM     $(BUILD_PATH)"

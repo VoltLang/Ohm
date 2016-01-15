@@ -10,7 +10,7 @@ import volt.visitor.visitor;
 import volt.visitor.scopemanager;
 
 import ohm.eval.datastore : VariableStore;
-import ohm.eval.controller : OhmController;
+import ohm.eval.driver : OhmDriver;
 import ohm.eval.languagepass : OhmLanguagePass;
 import ohm.eval.util : lookupFunction;
 
@@ -30,9 +30,9 @@ public:
 	{
 		this.lp = lp;
 
-		auto controller = cast(OhmController)lp.controller;
-		assert(controller !is null);
-		this.varStore = controller.varStore;
+		auto driver = cast(OhmDriver)lp.driver;
+		assert(driver !is null);
+		this.varStore = driver.varStore;
 	}
 
 	override void transform(ir.Module m)
@@ -61,6 +61,20 @@ public:
 		}
 
 		return super.leave(fn);
+	}
+
+	override Status enter(ir.BlockStatement bs)
+	{
+		if (mReplFuncLevel > 0) {
+			// `int x = 3` needs to be split into two parts:
+			//   int x;
+			//   x = 3;
+			// so we can later replace the ExpReference in `x = 3`
+			// with a call to __ohm_get_pointer.
+			splitVariableDeclarations(bs);
+		}
+
+		return super.enter(bs);
 	}
 
 	override Status enter(ir.Variable var)
@@ -119,11 +133,31 @@ public:
 			loc, buildPtrSmart(loc, type), buildCall(
 				loc, fn, [
 					buildConstantSizeT(loc, lp, cast(int) varStore.id),
-					buildAccess(loc, buildConstantString(loc, var.name), "ptr"),
+					buildConstantCString(loc, var.name),
 				], fn.name
 			)
 		));
 
 		return Continue;
 	}
+
+protected:
+	void splitVariableDeclarations(ir.BlockStatement bs) {
+		ir.Node[] newStatements;
+		foreach (node; bs.statements) {
+			newStatements ~= node;
+
+			auto asVar = cast(ir.Variable)node;
+			if (asVar !is null && asVar.assign !is null) {
+				auto exp = asVar.assign;
+				asVar.assign = null;
+
+				auto eref = buildExpReference(exp.location, asVar, asVar.name);
+				auto assign = buildAssign(exp.location, eref, exp);
+				newStatements ~= buildExpStat(exp.location, assign);
+			}
+		}
+		bs.statements = newStatements;
+	}
+
 }

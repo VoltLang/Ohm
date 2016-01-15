@@ -4,22 +4,16 @@ module ohm.eval.languagepass;
 import volt.util.worktracker;
 
 import volt.semantic.extyper;
-import volt.semantic.gatherer;
+import volt.postparse.gatherer;
 import volt.semantic.irverifier;
-import volt.semantic.condremoval;
-import volt.semantic.newreplacer;
-import volt.semantic.llvmlowerer;
-import volt.semantic.manglewriter;
-import volt.semantic.attribremoval;
-import volt.semantic.typeidreplacer;
-import volt.semantic.importresolver;
-import volt.semantic.ctfe;
+import volt.postparse.condremoval;
+import volt.lowerer.newreplacer;
+import volt.lowerer.llvmlowerer;
+import volt.lowerer.manglewriter;
+import volt.postparse.attribremoval;
+import volt.lowerer.typeidreplacer;
+import volt.postparse.scopereplacer;
 import volt.semantic.cfg;
-
-import volt.semantic.resolver;
-import volt.semantic.classresolver;
-import volt.semantic.aliasresolver;
-import volt.semantic.userattrresolver;
 import volt.semantic.strace;
 
 import volt.interfaces;
@@ -32,22 +26,23 @@ import ohm.eval.vardeclinserter;
 class OhmLanguagePass : VoltLanguagePass
 {
 public:
-	this(Settings settings, Frontend frontend, Controller controller)
+	this(Driver driver, VersionSet ver, Settings settings, Frontend frontend)
 	{
-		super(settings, frontend, controller);
+		super(driver, ver, settings, frontend);
 	}
 
 	override void reset() {
 		mTracker = new WorkTracker();
 
 		postParse = [];
-		postParse ~= new ConditionalRemoval(this);
+		postParse ~= new ConditionalRemoval(ver);
 		if (settings.removeConditionalsOnly) {
 			return;
 		}
-		postParse ~= new AttribRemoval(this);
+		postParse ~= new ScopeReplacer();
+		postParse ~= new AttribRemoval(settings);
 		postParse ~= new VarDeclInserter(this);
-		postParse ~= new Gatherer(this);
+		postParse ~= new Gatherer();
 
 		passes2 = [];
 		passes2 ~= new SimpleTrace(this);

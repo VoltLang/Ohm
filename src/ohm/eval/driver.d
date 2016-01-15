@@ -1,8 +1,8 @@
-module ohm.eval.controller;
+module ohm.eval.driver;
 
 import std.algorithm : endsWith;
 import std.path : buildNormalizedPath;
-import std.file : exists;
+import std.file : exists, read;
 import std.process : wait, spawnShell;
 import std.stdio : write, writeln, writefln, writef;
 import core.stdc.stdint : int64_t;
@@ -11,7 +11,7 @@ import ir = volt.ir.ir;
 import volt.ir.util;
 import volt.ir.copy;
 import volt.util.path;
-import volt.interfaces : Controller, Frontend, Backend, LanguagePass, Pass, TargetType;
+import volt.interfaces : Driver, VersionSet, Frontend, Backend, LanguagePass, Pass, TargetType;
 import volt.semantic.languagepass : VoltLanguagePass;
 import volt.semantic.extyper : ExTyper;
 import volt.semantic.classify : isAssign;
@@ -40,9 +40,10 @@ import ohm.eval.datastore : MemorizingVariableStore;
 import ohm.eval.util : createSimpleModule, createSimpleFunction, addImport;
 
 
-class OhmController : Controller
+class OhmDriver : Driver
 {
 public:
+	VersionSet ver;
 	Settings settings;
 	OhmParser frontend;
 	OhmLanguagePass languagePass;
@@ -71,8 +72,9 @@ protected:
 	LLVMModuleRef[string] mLLVMModules;
 
 protected:
-	this(Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
+	this(VersionSet ver, Settings s, OhmParser f, OhmLanguagePass lp, OhmBackend b)
 	{
+		this.ver = ver;
 		this.settings = s;
 		this.frontend = f;
 		this.languagePass = lp;
@@ -115,15 +117,15 @@ protected:
 	}
 
 public:
-	this(Settings s)
+	this(VersionSet ver, Settings s)
 	{
 		this.settings = s;
 
 		auto p = new OhmParser();
-		auto lp = new OhmLanguagePass(s, p, this);
+		auto lp = new OhmLanguagePass(this, ver, s, p);
 		auto b = new OhmBackend(lp);
 
-		this(s, p, lp, b);
+		this(ver, s, p, lp, b);
 
 		debugVisitors ~= new DebugMarker("Running DebugPrinter:");
 		debugVisitors ~= new DebugPrinter();
@@ -232,6 +234,37 @@ public:
 		}
 
 		return m;
+	}
+
+	/**
+	 * Retrieve a Module by its name. Returns null if none is found.
+	 */
+	override ir.Module loadModule(ir.QualifiedName name)
+	{
+		string[] validPaths;
+		foreach (path; mIncludes) {
+			auto paths = genPossibleFilenames(path, name.strings);
+
+			foreach (possiblePath; paths) {
+				if (exists(possiblePath)) {
+					validPaths ~= possiblePath;
+				}
+			}
+		}
+
+		if (validPaths.length == 0) {
+			return null;
+		}
+		if (validPaths.length > 1) {
+			throw makeMultipleValidModules(name, validPaths);
+		}
+
+		return loadAndParse(validPaths[0]);
+	}
+
+	override ir.Module[] getCommandLineModules()
+	{
+		return null;
 	}
 
 	void close() {
@@ -391,15 +424,12 @@ protected:
 
 	ir.Module loadAndParse(string file)
 	{
-		Location loc;
-		loc.filename = file;
-
 		if (file in mModulesByFile) {
 			return mModulesByFile[file];
 		}
 
-		auto src = cast(string) read(loc.filename);
-		auto m = frontend.parseNewFile(src, loc);
+		auto src = cast(string) read(file);
+		auto m = frontend.parseNewFile(src, file);
 		if (m.name.toString() in mModulesByName) {
 			throw makeAlreadyLoaded(m, file);
 		}

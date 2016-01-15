@@ -7,7 +7,7 @@ import volt.interfaces;
 import volt.visitor.visitor;
 import volt.semantic.classify : size;
 
-import ohm.eval.controller : OhmController;
+import ohm.eval.driver : OhmDriver;
 import ohm.eval.languagepass : OhmLanguagePass;
 import ohm.eval.datastore : VariableStore;
 
@@ -82,8 +82,8 @@ public:
 	{
 		this.lp = lp;
 
-		auto controller = cast(OhmController)lp.controller;
-		assert(controller !is null);
-		this.varStore = controller.varStore;
+		auto driver = cast(OhmDriver)lp.driver;
+		assert(driver !is null);
+		this.varStore = driver.varStore;
 	}
 }

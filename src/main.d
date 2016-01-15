@@ -8,11 +8,11 @@ version (Windows) {
 	import std.path : baseName, dirName;
 }
 
-import volt.interfaces : Platform, Arch;
+import volt.interfaces : VersionSet, Platform, Arch;
 import volt.errors : CompilerError;
 import volt.license;
-import volt.controller;
-import volt.util.path;
+import volt.driver;
+import watt.path;
 
 import ohm.interfaces : Input, Output, Interactive;
 import ohm.interactive : InteractiveConsole;
@@ -29,13 +29,15 @@ int main(string[] args)
 	auto settings = new Settings(getExecDir());
 	setDefault(settings);
 
-	if (!handleArgs(getConfigLines(), files, settings))
+	auto ver = new VersionSet();
+
+	if (!handleArgs(getConfigLines(), files, ver, settings))
 		return 0;
 
-	if (!handleArgs(args, files, settings))
+	if (!handleArgs(args, files, ver, settings))
 		return 0;
 
-	settings.processConfigs();
+	settings.processConfigs(ver);
 
 	if (files.length > 0) {
 		writefln("%s: unexpected arguments: %s", cmd, files);
@@ -49,7 +51,7 @@ int main(string[] args)
 
 	Interactive interactive;
 	try {
-		interactive = new InteractiveConsole(settings, input, output);
+		interactive = new InteractiveConsole(ver, settings, input, output);
 	} catch (CompilerError e) {
 		writeln(e.msg);
 		return 1;
@@ -64,7 +66,7 @@ int main(string[] args)
 }
 
 
-bool handleArgs(string[] args, ref string[] files, Settings settings)
+bool handleArgs(string[] args, ref string[] files, VersionSet ver, Settings settings)
 {
 	void delegate(string) argHandler;
 	int i;
@@ -75,7 +77,7 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 	}
 
 	void versionIdentifier(string ident) {
-		settings.setVersionIdentifier(ident);
+		ver.setVersionIdentifier(ident);
 	}
 
 	void libraryFile(string file) {
@@ -113,7 +115,7 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 				return false;
 			}
 
-			if (!handleArgs(lines, files, settings))
+			if (!handleArgs(lines, files, ver, settings))
 				return false;
 
 			continue;
@@ -155,7 +157,7 @@ bool handleArgs(string[] args, ref string[] files, Settings settings)
 			settings.warningsEnabled = true;
 			continue;
 		case "-d":
-			settings.debugEnabled = true;
+			ver.debugEnabled = true;
 			continue;
 		case "--simple-trace":
 			settings.simpleTrace = true;

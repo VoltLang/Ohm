@@ -234,13 +234,13 @@ ParseStatus parseOneTopLevelOrStatement(ParserStream ps, out ir.TopLevelBlock tl
 			ps.get();
 			break;
 		default:
-			ir.Node[] nodes;
-			succeeded = parseStatement(ps, nodes);
+			auto sink = new NodeSink();
+			succeeded = parseStatement(ps, sink.push);
 			if (!succeeded) {
 				return succeeded;
 			}
 
-			foreach (statement; nodes) {
+			foreach (statement; sink.array) {
 				// TODO check if more needs to be stored in the tlb
 				if (statement.nodeType == ir.NodeType.Function) {
 					tlb.nodes ~= cast(ir.Function) statement;
@@ -262,7 +262,8 @@ class OhmParser : VoltaParser
 public:
 	ir.TopLevelBlock parseToplevel(string source, Location loc)
 	{
-		auto src = new Source(source, loc);
+		auto src = new Source(source, loc.filename);
+		src.location = loc;
 		auto ps = new ParserStream(lex(src));
 		if (dumpLex)
 			doDumpLex(ps);
@@ -276,7 +277,8 @@ public:
 
 	void parseTopLevelsOrStatements(string source, Location loc, out ir.TopLevelBlock tlb, out ir.Node[] statements)
 	{
-		auto src = new Source(source, loc);
+		auto src = new Source(source, loc.filename);
+		src.location = loc;
 		auto ps = new ParserStream(lex(src));
 		if (dumpLex)
 			doDumpLex(ps);

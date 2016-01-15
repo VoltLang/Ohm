@@ -121,7 +121,7 @@ public:
 			auto var = nodes[i];
 
 			int a = cast(int)alignment(lp, var.type);
-			int size = .size(lp, var.type);
+			ulong size = .size(lp, var.type);
 			if (offset % a) {
 				offset += (a - (offset % a));
 			}
@@ -250,20 +250,20 @@ public:
 
 		mCurrent += size(lp, it);
 
-		return ContinueParent;
+		return Continue;
 	}
 
 	override Status visit(ir.TypeReference tr)
 	{
 		accept(tr.type, this);
-		return ContinueParent;
+		return Continue;
 	}
 
 	override Status visit(ir.NullType nt)
 	{
 		wf("null");
 		mCurrent += size(lp, nt);
-		return ContinueParent;
+		return Continue;
 	}
 
 protected:
