@@ -199,6 +199,11 @@ public:
 
 	override Status enter(ir.AAType array)
 	{
+		if (*cast(void**)mCurrent is null) {
+			wf("[]");
+			return ContinueParent;
+		}
+
 		auto vaa = *cast(VoltAA**) mCurrent;
 
 		auto oldCurrent = mCurrent;
